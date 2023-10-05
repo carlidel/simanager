@@ -1,0 +1,247 @@
+import os
+import re
+import subprocess
+from datetime import datetime
+
+import yaml
+
+from .simulation_study import SimulationStudy
+
+INSTRUCTIONS_SLURM_DEFAULT = """
+#!/bin/bash
+
+#SBATCH --job-name=__REPLACE_WITH_JOB_NAME__
+#SBATCH --output=$3
+#SBATCH --error=$4
+#SBATCH --time=__REPLACE_WITH_TIME_LIMIT__
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=__REPLACE_WITH_REQUEST_CPUS__
+#SBATCH --mem=__REPLACE_WITH_REQUEST_MEM__
+#SBATCH --gres=__REPLACE_WITH_REQUEST_GPUS__
+#SBATCH --partition=__REPLACE_WITH_PARTITION__
+
+# initial instructions
+# set simpath
+SIMPATH=$1
+cd $SIMPATH
+
+# load python environment
+source __REPLACE_WITH_VENV_PATH__
+
+bash $2
+
+# final instructions
+
+# create a marker file to signal that the simulation is finished in SIMPATH
+touch $SIMPATH/remote_finished
+"""
+
+SUBMISSION_SLURM_DEFAULT = """
+#!/bin/bash
+
+SIMPATHS=__REPLACE_WITH_SIMPATHS__
+OUTPATHS=__REPLACE_WITH_OUTPATHS__
+ERRPATHS=__REPLACE_WITH_ERRPATHS__
+
+# iterate over the zip of the three lists
+for SIMPATH OUTPATH ERRPATH in $(paste -d' ' <(echo $SIMPATHS) <(echo $OUTPATHS) <(echo $ERRPATHS))
+do
+    # submit the job
+    sbatch __REPLACE_WITH_SLURM_SUBMIT_FILE__ $SIMPATH $OUTPATH $ERRPATH
+done
+
+"""
+
+
+def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
+    """Runs the simulation study on SLURM. Takes in consideration the weird
+    way the CNAF shared filesystem works.
+
+    Parameters
+    ----------
+    simulation_study : SimulationStudy
+        The simulation study to run.
+    kwargs
+        Keyword arguments.
+
+    Keyword Arguments
+    -----------------
+    slurm_instructions: str
+        The instructions to add to the SLURM submit file.
+    stdout_path : str
+        The path to the folder where the stdout files will be saved.
+    stderr_path : str
+        The path to the folder where the stderr files will be saved.
+    log_path : str
+        The path to the folder where the log files will be saved.
+    slurm_submit_template : str
+        The template for the SLURM submit file.
+    request_gpus : bool
+        If True, requests GPUs. By default, does not request GPUs.
+    request_cpus : int
+        The number of CPUs to request. By default, requests 1 CPU.
+    request_ram : int
+        GB of RAM to be requested. By default, requests 2 GB * request_cpus.
+    time_limit : str
+        The time limit for the simulations. Following the SLURM format, that is
+        hh:mm:ss, by default 2 hours.
+    venv_path : str
+        The path to the virtual environment to use.
+    partition_option : str
+        The partition to use. By default, no partition is specified.
+    slurm_submit_template : str
+        The template for the SLURM submit file.
+
+    Raises
+    ------
+    ValueError
+        If the simulation study folders are not created.
+    """
+    slurm_instructions = kwargs.get("slurm_instructions", INSTRUCTIONS_SLURM_DEFAULT)
+    stdout_path = kwargs.get(
+        "stdout_path", os.path.join(simulation_study.study_path, "out")
+    )
+    stderr_path = kwargs.get(
+        "stderr_path", os.path.join(simulation_study.study_path, "err")
+    )
+    log_path = kwargs.get("log_path", os.path.join(simulation_study.study_path, "log"))
+    request_gpus = kwargs.get("request_gpus", False)
+    request_cpus = kwargs.get("request_cpus", 1)
+    request_ram = kwargs.get("request_ram", 2 * request_cpus)
+    time_limit = kwargs.get("time_limit", "02:00:00")
+    venv_path = kwargs.get("venv_path", "/home/HPC/camontan/anaconda3/bin/python")
+    partition_option = kwargs.get("partition_option", "")
+    slurm_submit_template = kwargs.get(
+        "slurm_submit_template", SUBMISSION_SLURM_DEFAULT
+    )
+
+    # create the folder "slurm_support" in the study folder
+    slurm_support_folder = os.path.join(
+        simulation_study.study_path, simulation_study.study_name, "slurm_support"
+    )
+    os.makedirs(slurm_support_folder, exist_ok=True)
+
+    # specialization of the SLURM file
+    slurm_instructions = slurm_instructions.replace(
+        "__REPLACE_WITH_REQUEST_CPUS__", str(request_cpus)
+    )
+    slurm_instructions = slurm_instructions.replace(
+        "__REPLACE_WITH_REQUEST_MEM__", str(request_ram) + "G"
+    )
+    slurm_instructions = slurm_instructions.replace(
+        "__REPLACE_WITH_TIME_LIMIT__", time_limit
+    )
+    slurm_instructions = slurm_instructions.replace(
+        "__REPLACE_WITH_VENV_PATH__", venv_path
+    )
+    slurm_instructions = slurm_instructions.replace(
+        "__REPLACE_WITH_MAIN_FILE__", simulation_study.main_file
+    )
+
+    if request_gpus:
+        slurm_instructions = slurm_instructions.replace(
+            "__REPLACE_WITH_REQUEST_GPUS__", "gpu:1"
+        )
+    else:
+        # remove the entire line where the gres is specified
+        slurm_instructions = re.sub(
+            r"#SBATCH --gres=__REPLACE_WITH_REQUEST_GPUS__\n", "", slurm_instructions
+        )
+
+    if partition_option != "":
+        slurm_instructions = slurm_instructions.replace(
+            "__REPLACE_WITH_PARTITION__", partition_option
+        )
+    else:
+        # remove the entire line where the partition is specified
+        slurm_instructions = re.sub(
+            r"#SBATCH --partition=__REPLACE_WITH_PARTITION__\n", "", slurm_instructions
+        )
+
+    # save the SLURM file
+    slurm_submit_file = os.path.join(
+        slurm_support_folder,
+        "slurm_submit_file.slurm",
+    )
+    with open(slurm_submit_file, "w", encoding="utf-8") as f:
+        f.write(slurm_instructions)
+
+    # load the simulation info
+    simulation_info_file = os.path.join(
+        simulation_study.study_path, simulation_study.study_name, "simulation_info.yaml"
+    )
+    with open(simulation_info_file, "r", encoding="utf-8") as f:
+        simulation_info = yaml.safe_load(f)
+
+    # get the list of simulations to run
+    simulations_to_run = simulation_info["sim_not_started"]
+    # get the root folder
+    root_folder = simulation_info["root_folder"]
+
+    queue_simpath_list = []
+    queue_outpath_list = []
+    queue_errpath_list = []
+    for i, sim in enumerate(simulations_to_run):
+        folder_path = os.path.join(root_folder, "scan", sim)
+
+        queue_simpath_list.append(folder_path)
+        queue_outpath_list.append(os.path.join(stdout_path, sim + ".out"))
+        queue_errpath_list.append(os.path.join(stderr_path, sim + ".err"))
+
+        print(f"Added {sim} to the queue file")
+
+    print("Total number of jobs:", len(simulations_to_run))
+
+    # specialize the submission file
+    slurm_submit_template = slurm_submit_template.replace(
+        "__REPLACE_WITH_SIMPATHS__", '"' + " ".join(queue_simpath_list) + '"'
+    )
+    slurm_submit_template = slurm_submit_template.replace(
+        "__REPLACE_WITH_OUTPATHS__", '"' + " ".join(queue_outpath_list) + '"'
+    )
+    slurm_submit_template = slurm_submit_template.replace(
+        "__REPLACE_WITH_ERRPATHS__", '"' + " ".join(queue_errpath_list) + '"'
+    )
+
+    slurm_submit_template = slurm_submit_template.replace(
+        "__REPLACE_WITH_SLURM_SUBMIT_FILE__", slurm_submit_file
+    )
+
+    # save the submission file
+    submission_file = os.path.join(
+        slurm_support_folder,
+        "submission_file.sh",
+    )
+    with open(submission_file, "w", encoding="utf-8") as f:
+        f.write(slurm_submit_template)
+
+    # submit the jobs while staying in the slurm_support folder
+    print("Submitting the jobs...")
+    print("----------------------------------------")
+    print("May the gods above and below be with you and have mercy")
+    print("on your soul and your jobs!")
+    print("----------------------------------------")
+    try:
+        subprocess.run(
+            ["bash", submission_file],
+            cwd=slurm_support_folder,
+            check=True,
+        )
+    except subprocess.CalledProcessError:
+        print("Error submitting the jobs, exiting...")
+        print("----------------------------------------")
+        print("Impressive! Most impressive!")
+        print("It looks like the gods hate you so much that the jobs")
+        print("were not even submitted!")
+        print("----------------------------------------")
+        return
+
+    now = datetime.now()
+    print("Jobs submitted at", now)
+    print("----------------------------------------")
+    print("Good luck!")
+    print("----------------------------------------")
+    print("Remember to check the status of your jobs")
+    print("by running the internal function print_sim_status")
+    print("----------------------------------------")
