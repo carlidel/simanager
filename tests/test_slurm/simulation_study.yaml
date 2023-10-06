@@ -1,7 +1,7 @@
 # simulation parameters
 study_name: "test_local"
 study_path: "./"
-original_folder: "/afs/cern.ch/work/c/camontan/public/simanager/tests/example_master_study"
+original_folder: "/home/HPC/camontan/simanager/tests/example_master_study"
 main_file: "main_script.sh"
 config_file: "params.yaml"
 # The following parameters are used to generate the study

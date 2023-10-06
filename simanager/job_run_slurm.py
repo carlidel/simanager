@@ -10,8 +10,8 @@ from .simulation_study import SimulationStudy
 INSTRUCTIONS_SLURM_DEFAULT = """#!/bin/bash
 
 #SBATCH --job-name=__REPLACE_WITH_JOB_NAME__
-#SBATCH --output=$3
-#SBATCH --error=$4
+#SBATCH --output=__REPLACE_WITH_SLURM_OUT_PATH__
+#SBATCH --error=__REPLACE_WITH_SLURM_ERR_PATH__
 #SBATCH --time=__REPLACE_WITH_TIME_LIMIT__
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -30,7 +30,8 @@ pwd
 source __REPLACE_WITH_VENV_PATH__
 
 # run the simulation main file
-bash $2
+# stdout and stderr are redirected to $3 and $4
+bash $2 > $3 2> $4
 
 # final instructions
 
@@ -40,15 +41,22 @@ touch $SIMPATH/remote_finished
 
 SUBMISSION_SLURM_DEFAULT = """#!/bin/bash
 
+# Define three lists as arrays
 SIMPATHS=__REPLACE_WITH_SIMPATHS__
 OUTPATHS=__REPLACE_WITH_OUTPATHS__
 ERRPATHS=__REPLACE_WITH_ERRPATHS__
 
-# iterate over the zip of the three lists
-for SIMPATH OUTPATH ERRPATH in $(paste -d' ' <(echo $SIMPATHS) <(echo $OUTPATHS) <(echo $ERRPATHS))
-do
+# Calculate the length of one of the lists (assuming all lists have the same length)
+length=${#SIMPATHS[@]}
+
+# Iterate over the indices of the arrays
+for ((i = 0; i < length; i++)); do
+    SIM=${SIMPATHS[i]}
+    OUT=${OUTPATHS[i]}
+    ERR=${ERRPATHS[i]}
+
     # submit the job
-    sbatch __REPLACE_WITH_SLURM_SUBMIT_FILE__ $SIMPATH __REPLACE_WITH_MAINFILE__ $OUTPATH $ERRPATH
+    sbatch __REPLACE_WITH_SLURM_SUBMIT_FILE__ $SIM __REPLACE_WITH_MAINFILE__ $OUT $ERR
 done
 
 """
@@ -71,8 +79,14 @@ def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
         The instructions to add to the SLURM submit file.
     stdout_path : str
         The path to the folder where the stdout files will be saved.
+    stdout_path_slurm : str
+        The path to the file where the stdout files will be saved in the
+        SLURM submit file.
     stderr_path : str
         The path to the folder where the stderr files will be saved.
+    stderr_path_slurm : str
+        The path to the file where the stderr files will be saved in the
+        SLURM submit file.
     log_path : str
         The path to the folder where the log files will be saved.
     slurm_submit_template : str
@@ -101,13 +115,15 @@ def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
     sim_folder = os.path.join(simulation_study.study_path, simulation_study.study_name)
     slurm_instructions = kwargs.get("slurm_instructions", INSTRUCTIONS_SLURM_DEFAULT)
     stdout_path = kwargs.get("stdout_path", os.path.join(sim_folder, "out"))
+    stdout_path_slurm = kwargs.get("stdout_path_slurm", os.path.join(sim_folder, "out", "slurm.out"))
     stderr_path = kwargs.get("stderr_path", os.path.join(sim_folder, "err"))
+    stderr_path_slurm = kwargs.get("stderr_path_slurm", os.path.join(sim_folder, "err", "slurm.err"))
     log_path = kwargs.get("log_path", os.path.join(sim_folder, "log"))
     request_gpus = kwargs.get("request_gpus", False)
     request_cpus = kwargs.get("request_cpus", 1)
     request_ram = kwargs.get("request_ram", 2 * request_cpus)
     time_limit = kwargs.get("time_limit", "02:00:00")
-    venv_path = kwargs.get("venv_path", "/home/HPC/camontan/anaconda3/bin/python")
+    venv_path = kwargs.get("venv_path", "/home/HPC/camontan/anaconda3/bin/activate")
     partition_option = kwargs.get("partition_option", "slurm_hpc_acc")
     slurm_submit_template = kwargs.get(
         "slurm_submit_template", SUBMISSION_SLURM_DEFAULT
@@ -118,6 +134,15 @@ def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
     os.makedirs(slurm_support_folder, exist_ok=True)
 
     # specialization of the SLURM file
+    slurm_instructions = slurm_instructions.replace(
+        "__REPLACE_WITH_JOB_NAME__", simulation_study.study_name
+    )
+    slurm_instructions = slurm_instructions.replace(
+        "__REPLACE_WITH_SLURM_OUT_PATH__", stdout_path_slurm
+    )
+    slurm_instructions = slurm_instructions.replace(
+        "__REPLACE_WITH_SLURM_ERR_PATH__", stderr_path_slurm
+    )
     slurm_instructions = slurm_instructions.replace(
         "__REPLACE_WITH_REQUEST_CPUS__", str(request_cpus)
     )
@@ -190,13 +215,13 @@ def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
 
     # specialize the submission file
     slurm_submit_template = slurm_submit_template.replace(
-        "__REPLACE_WITH_SIMPATHS__", '"' + " ".join(queue_simpath_list) + '"'
+        "__REPLACE_WITH_SIMPATHS__", '(' + " ".join([f'"{s}"' for s in queue_simpath_list]) + ')'
     )
     slurm_submit_template = slurm_submit_template.replace(
-        "__REPLACE_WITH_OUTPATHS__", '"' + " ".join(queue_outpath_list) + '"'
+        "__REPLACE_WITH_OUTPATHS__", '(' + " ".join([f'"{s}"' for s in queue_outpath_list]) + ')'
     )
     slurm_submit_template = slurm_submit_template.replace(
-        "__REPLACE_WITH_ERRPATHS__", '"' + " ".join(queue_errpath_list) + '"'
+        "__REPLACE_WITH_ERRPATHS__", '(' + " ".join([f'"{s}"' for s in queue_errpath_list]) + ')'
     )
     slurm_submit_template = slurm_submit_template.replace(
         "__REPLACE_WITH_MAIN_FILE__", simulation_study.main_file
@@ -204,6 +229,9 @@ def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
 
     slurm_submit_template = slurm_submit_template.replace(
         "__REPLACE_WITH_SLURM_SUBMIT_FILE__", slurm_submit_file
+    )
+    slurm_submit_template = slurm_submit_template.replace(
+        "__REPLACE_WITH_MAINFILE__", simulation_study.main_file
     )
 
     # save the submission file
