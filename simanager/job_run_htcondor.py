@@ -114,7 +114,7 @@ log        = __REPLACE_WITH_LOG_PATH__
 
 transfer_output_files = ""
 
-requirements = (regexp("(V100|A100)", Target.CUDADeviceName) && ( TARGET.OpSysAndVer =?= "AlmaLinux9" || TARGET.OpSysAndVer =?= "CentOS7"))
+requirements = (regexp("(V100|A100)", Target.CUDADeviceName) && (TARGET.OpSysAndVer =?= "CentOS7"))
 
 request_GPUs = __REPLACE_WITH_REQUEST_GPUS__
 request_cpus = __REPLACE_WITH_REQUEST_CPUS__
