@@ -91,7 +91,7 @@ log        = __REPLACE_WITH_LOG_PATH__
 
 transfer_output_files = ""
 
-requirements = (TARGET.OpSysAndVer =?= "AlmaLinux9" || TARGET.OpSysAndVer =?= "CentOS7")
+requirements = (TARGET.OpSysAndVer =?= "CentOS7")
 
 request_cpus = __REPLACE_WITH_REQUEST_CPUS__
 
