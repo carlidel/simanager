@@ -15,10 +15,17 @@ export EOS_MGM_URL=root://eosuser.cern.ch
 source __REPLACE_WITH_CVMFS_PATH__
 source __REPLACE_WITH_VENV_PATH__
 
+# echo the sourced environments
+echo "CVMFS environment:"
+echo "__REPLACE_WITH_CVMFS_PATH__"
+echo "VENV environment:"
+echo "__REPLACE_WITH_VENV_PATH__"
+
 SIMPATH=$1
 
-mkdir ./output
-OUTPUT_DIR="./output"
+echo "SIMPATH:"
+echo $SIMPATH
+
 #___END_INITIAL_INSTRUCTIONS___
 """
 
@@ -28,33 +35,33 @@ FINAL_INSTRUCTIONS_HTCONDOR_DEFAULT = """
 EOS_DIR=__REPLACE_WITH_EOS_DIR__
 
 # grab list of *.h5 files
-h5_files=$(ls $OUTPUT_DIR/*.h5)
+h5_files=$(ls ./*.h5)
 # copy them to EOS
 for f in $h5_files
 do
     echo "Copying $f to EOS"
-    eos cp $f $EOS_DIR
+    eos cp ./$(basename $f) $EOS_DIR
 done
 # create a symbolic link of the various files in the output folder
 for f in $h5_files
 do
     echo "Creating symbolic link for $f"
-    ln -s $f $OUTPUT_DIR/$(basename $f)
+    ln -s $EOS_DIR/$(basename $f) $SIMPATH/$(basename $f)
 done
 
 # grab list of *.pkl files
-pkl_files=$(ls $OUTPUT_DIR/*.pkl)
+pkl_files=$(ls ./*.pkl)
 # copy them to EOS
 for f in $pkl_files
 do
     echo "Copying $f to EOS"
-    eos cp $f $EOS_DIR
+    eos cp ./$f $EOS_DIR
 done
 # create a symbolic link of the various files in the output folder
 for f in $pkl_files
 do
     echo "Creating symbolic link for $f"
-    ln -s $f $OUTPUT_DIR/$(basename $f)
+    ln -s $EOS_DIR/$(basename $f) $SIMPATH/$(basename $f)
 done
 
 # create a marker file to signal that the simulation is finished in SIMPATH
