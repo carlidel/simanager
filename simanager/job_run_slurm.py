@@ -7,8 +7,7 @@ import yaml
 
 from .simulation_study import SimulationStudy
 
-INSTRUCTIONS_SLURM_DEFAULT = """
-#!/bin/bash
+INSTRUCTIONS_SLURM_DEFAULT = """#!/bin/bash
 
 #SBATCH --job-name=__REPLACE_WITH_JOB_NAME__
 #SBATCH --output=$3
@@ -25,10 +24,12 @@ INSTRUCTIONS_SLURM_DEFAULT = """
 # set simpath
 SIMPATH=$1
 cd $SIMPATH
+pwd
 
 # load python environment
 source __REPLACE_WITH_VENV_PATH__
 
+# run the simulation main file
 bash $2
 
 # final instructions
@@ -37,8 +38,7 @@ bash $2
 touch $SIMPATH/remote_finished
 """
 
-SUBMISSION_SLURM_DEFAULT = """
-#!/bin/bash
+SUBMISSION_SLURM_DEFAULT = """#!/bin/bash
 
 SIMPATHS=__REPLACE_WITH_SIMPATHS__
 OUTPATHS=__REPLACE_WITH_OUTPATHS__
@@ -98,28 +98,23 @@ def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
     ValueError
         If the simulation study folders are not created.
     """
+    sim_folder = os.path.join(simulation_study.study_path, simulation_study.study_name)
     slurm_instructions = kwargs.get("slurm_instructions", INSTRUCTIONS_SLURM_DEFAULT)
-    stdout_path = kwargs.get(
-        "stdout_path", os.path.join(simulation_study.study_path, "out")
-    )
-    stderr_path = kwargs.get(
-        "stderr_path", os.path.join(simulation_study.study_path, "err")
-    )
-    log_path = kwargs.get("log_path", os.path.join(simulation_study.study_path, "log"))
+    stdout_path = kwargs.get("stdout_path", os.path.join(sim_folder, "out"))
+    stderr_path = kwargs.get("stderr_path", os.path.join(sim_folder, "err"))
+    log_path = kwargs.get("log_path", os.path.join(sim_folder, "log"))
     request_gpus = kwargs.get("request_gpus", False)
     request_cpus = kwargs.get("request_cpus", 1)
     request_ram = kwargs.get("request_ram", 2 * request_cpus)
     time_limit = kwargs.get("time_limit", "02:00:00")
     venv_path = kwargs.get("venv_path", "/home/HPC/camontan/anaconda3/bin/python")
-    partition_option = kwargs.get("partition_option", "")
+    partition_option = kwargs.get("partition_option", "slurm_hpc_acc")
     slurm_submit_template = kwargs.get(
         "slurm_submit_template", SUBMISSION_SLURM_DEFAULT
     )
 
     # create the folder "slurm_support" in the study folder
-    slurm_support_folder = os.path.join(
-        simulation_study.study_path, simulation_study.study_name, "slurm_support"
-    )
+    slurm_support_folder = os.path.join(sim_folder, "slurm_support")
     os.makedirs(slurm_support_folder, exist_ok=True)
 
     # specialization of the SLURM file
