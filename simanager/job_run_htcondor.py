@@ -6,8 +6,7 @@ import yaml
 
 from .simulation_study import SimulationStudy
 
-INITIAL_INSTRUCTIONS_HTCONDOR_DEFAULT = """
-#!/bin/bash
+INITIAL_INSTRUCTIONS_HTCONDOR_DEFAULT = """#!/bin/bash
 # initial instructions
 
 export EOS_MGM_URL=root://eosuser.cern.ch
