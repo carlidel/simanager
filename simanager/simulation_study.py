@@ -333,7 +333,22 @@ class SimulationStudy:
                         pass
                     try:
                         simulation_info["sim_not_started"].remove(sim)
-                        print(f"Removed {sim} from sim_running")
+                        print(f"Removed {sim} from sim_not_started")
+                    except ValueError:
+                        pass
+                    try:
+                        simulation_info["sim_error"].remove(sim)
+                        print(f"Removed {sim} from sim_error")
+                    except ValueError:
+                        pass
+                    try:
+                        simulation_info["sim_interrupted"].remove(sim)
+                        print(f"Removed {sim} from sim_interrupted")
+                    except ValueError:
+                        pass
+                    try:
+                        simulation_info["sim_finished"].remove(sim)
+                        print(f"{sim} has indeed finished")
                     except ValueError:
                         pass
                     simulation_info["sim_finished"].append(sim)

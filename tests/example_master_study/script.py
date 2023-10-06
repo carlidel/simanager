@@ -36,11 +36,11 @@ print_yaml_dict(yaml_dict)
 print("This is a message on standard error", file=sys.stderr)
 
 # save the yaml file in a pickle
-with open("yaml_dict.pickle", "wb") as f:
+with open("yaml_dict.pkl", "wb") as f:
     pickle.dump(yaml_dict, f)
 
 # save the yaml file in an hdf5
-with h5py.File("yaml_dict.hdf5", "w") as f:
+with h5py.File("yaml_dict.h5", "w") as f:
     for key, value in yaml_dict.items():
         if isinstance(value, dict):
             for subkey, subvalue in value.items():
