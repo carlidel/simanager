@@ -26,6 +26,9 @@ SIMPATH=$1
 echo "SIMPATH:"
 echo $SIMPATH
 
+# copy all contents of the folder SIMPATH to the current folder
+cp -r $SIMPATH/* .
+
 #___END_INITIAL_INSTRUCTIONS___
 """
 
