@@ -148,14 +148,18 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         * "tomorrow" for 1 day
         * "testmatch" for 3 days
         * "nextweek" for 1 week
+        default is "longlunch".
     cvmfs_path : str
         The path to the CVMFS environment to use.
+        Default is "/cvmfs/sft.cern.ch/lcg/views/LCG_102b_cuda/x86_64-centos7-gcc8-opt/setup.sh".
     venv_path : str
         The path to the virtual environment to use.
+        Default is the same as cvmfs_path.
     eos_dir : str
         The path to the EOS directory where to copy the output files.
     bump_schedd : bool
         If True, bumps the schedd before submitting the jobs.
+        Default is True.
 
     Raises
     ------
