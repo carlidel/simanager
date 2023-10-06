@@ -14,6 +14,7 @@ setup(
     url="https://github.com/carlidel/simanager",
     packages=find_packages(),
     install_requires=["numpy", "pyyaml"],
+    include_package_data=True,
     # MIT license
     license="MIT",
 )
