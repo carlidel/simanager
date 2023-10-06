@@ -474,8 +474,11 @@ class SimulationStudy:
                 if os.path.exists(os.path.join(folder_path, "remote_finished")):
                     os.remove(os.path.join(folder_path, "remote_finished"))
 
-            # update the simulation status
-            simulation_info["sim_not_started"].append(sim)
+            try:
+                simulation_info["sim_not_started"].remove(sim)
+                print(f"Removed {sim} from sim_not_started")
+            except ValueError:
+                pass
             try:
                 simulation_info["sim_running"].remove(sim)
                 print(f"Removed {sim} from sim_running")
@@ -491,6 +494,9 @@ class SimulationStudy:
                 print(f"Removed {sim} from sim_error")
             except ValueError:
                 pass
+
+            # update the simulation status
+            simulation_info["sim_not_started"].append(sim)
 
         # save the simulation info
         with open(simulation_info_file, "w", encoding="utf-8") as f:
