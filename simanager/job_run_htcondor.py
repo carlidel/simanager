@@ -166,19 +166,17 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     ValueError
         If the simulation study folders are not created.
     """
+    sim_folder = os.path.join(simulation_study.study_path, simulation_study.study_name)
+
     initial_instructions = kwargs.get(
         "initial_instructions", INITIAL_INSTRUCTIONS_HTCONDOR_DEFAULT
     )
     final_instructions = kwargs.get(
         "final_instructions", FINAL_INSTRUCTIONS_HTCONDOR_DEFAULT
     )
-    stdout_path = kwargs.get(
-        "stdout_path", os.path.join(simulation_study.study_path, "out")
-    )
-    stderr_path = kwargs.get(
-        "stderr_path", os.path.join(simulation_study.study_path, "err")
-    )
-    log_path = kwargs.get("log_path", os.path.join(simulation_study.study_path, "log"))
+    stdout_path = kwargs.get("stdout_path", os.path.join(sim_folder, "out"))
+    stderr_path = kwargs.get("stderr_path", os.path.join(sim_folder, "err"))
+    log_path = kwargs.get("log_path", os.path.join(sim_folder, "log"))
     request_gpus = kwargs.get("request_gpus", False)
     request_cpus = kwargs.get("request_cpus", 1)
     time_limit = kwargs.get("time_limit", "longlunch")
@@ -200,9 +198,7 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     eos_dir = kwargs.get("eos_dir", "/eos/user/c/camontan/data")
 
     # create the folder "htcondor_support" in the study folder
-    htcondor_support_folder = os.path.join(
-        simulation_study.study_path, simulation_study.study_name, "htcondor_support"
-    )
+    htcondor_support_folder = os.path.join(sim_folder, "htcondor_support")
     os.makedirs(htcondor_support_folder, exist_ok=True)
 
     # specializations of the submit file
@@ -234,9 +230,7 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         f.write(htcondor_submit_str)
 
     # load the simulation info
-    simulation_info_file = os.path.join(
-        simulation_study.study_path, simulation_study.study_name, "simulation_info.yaml"
-    )
+    simulation_info_file = os.path.join(sim_folder, "simulation_info.yaml")
     with open(simulation_info_file, "r", encoding="utf-8") as f:
         simulation_info = yaml.safe_load(f)
 
