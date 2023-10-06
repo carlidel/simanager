@@ -42,13 +42,17 @@ h5_files=$(ls ./*.h5)
 for f in $h5_files
 do
     echo "Copying $f to EOS"
-    eos cp ./$(basename $f) $EOS_DIR
+    bn="${f##*/}"  # Extract the filename from the path
+    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
+    eos cp ./$(basename $f) $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.h5
 done
 # create a symbolic link of the various files in the output folder
 for f in $h5_files
 do
     echo "Creating symbolic link for $f"
-    ln -s $EOS_DIR/$(basename $f) $SIMPATH/$(basename $f)
+    bn="${f##*/}"  # Extract the filename from the path
+    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
+    ln -s $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.h5 $SIMPATH/$(basename $f)
 done
 
 # grab list of *.pkl files
@@ -57,13 +61,17 @@ pkl_files=$(ls ./*.pkl)
 for f in $pkl_files
 do
     echo "Copying $f to EOS"
-    eos cp ./$f $EOS_DIR
+    bn="${f##*/}"  # Extract the filename from the path
+    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
+    eos cp ./$(basename $f) $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.pkl
 done
 # create a symbolic link of the various files in the output folder
 for f in $pkl_files
 do
     echo "Creating symbolic link for $f"
-    ln -s $EOS_DIR/$(basename $f) $SIMPATH/$(basename $f)
+    bn="${f##*/}"  # Extract the filename from the path
+    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
+    ln -s $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.pkl $SIMPATH/$(basename $f)
 done
 
 # create a marker file to signal that the simulation is finished in SIMPATH
