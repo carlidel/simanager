@@ -157,18 +157,24 @@ def job_run_local(simulation_study: SimulationStudy, **kwargs):
     ValueError
         If the simulation study folders are not created.
     """
-    initial_instructions = kwargs.get(
+    initial_instructions = kwargs.pop(
         "initial_instructions", INITIAL_INSTRUCTIONS_LOCAL_DEFAULT
     )
-    final_instructions = kwargs.get(
+    final_instructions = kwargs.pop(
         "final_instructions", FINAL_INSTRUCTIONS_LOCAL_DEFAULT
     )
     sim_folder = os.path.join(simulation_study.study_path, simulation_study.study_name)
-    stdout_path = kwargs.get("stdout_path", os.path.join(sim_folder, "out"))
-    stderr_path = kwargs.get("stderr_path", os.path.join(sim_folder, "err"))
-    log_path = kwargs.get("log_path", os.path.join(sim_folder, "log"))
+    stdout_path = kwargs.pop("stdout_path", os.path.join(sim_folder, "out"))
+    stderr_path = kwargs.pop("stderr_path", os.path.join(sim_folder, "err"))
+    log_path = kwargs.pop("log_path", os.path.join(sim_folder, "log"))
 
-    gpu_available_list = kwargs.get("gpu_available_list", [])
+    gpu_available_list = kwargs.pop("gpu_available_list", [])
+
+    # if unexpected keyword arguments are passed, raise an error
+    if kwargs:
+        raise ValueError(
+            "Unexpected keyword arguments passed: " + ", ".join(kwargs.keys())
+        )
 
     # load the simulation info
     simulation_info_file = os.path.join(sim_folder, "simulation_info.yaml")

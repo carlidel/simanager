@@ -185,34 +185,40 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     """
     sim_folder = os.path.join(simulation_study.study_path, simulation_study.study_name)
 
-    initial_instructions = kwargs.get(
+    initial_instructions = kwargs.pop(
         "initial_instructions", INITIAL_INSTRUCTIONS_HTCONDOR_DEFAULT
     )
-    final_instructions = kwargs.get(
+    final_instructions = kwargs.pop(
         "final_instructions", FINAL_INSTRUCTIONS_HTCONDOR_DEFAULT
     )
-    stdout_path = kwargs.get("stdout_path", os.path.join(sim_folder, "out"))
-    stderr_path = kwargs.get("stderr_path", os.path.join(sim_folder, "err"))
-    log_path = kwargs.get("log_path", os.path.join(sim_folder, "log"))
-    request_gpus = kwargs.get("request_gpus", False)
-    request_cpus = kwargs.get("request_cpus", 1)
-    time_limit = kwargs.get("time_limit", "longlunch")
-    bump_schedd = kwargs.get("bump_schedd", True)
+    stdout_path = kwargs.pop("stdout_path", os.path.join(sim_folder, "out"))
+    stderr_path = kwargs.pop("stderr_path", os.path.join(sim_folder, "err"))
+    log_path = kwargs.pop("log_path", os.path.join(sim_folder, "log"))
+    request_gpus = kwargs.pop("request_gpus", False)
+    request_cpus = kwargs.pop("request_cpus", 1)
+    time_limit = kwargs.pop("time_limit", "longlunch")
+    bump_schedd = kwargs.pop("bump_schedd", True)
 
-    htcondor_submit_str = kwargs.get(
+    htcondor_submit_str = kwargs.pop(
         "htcondor_submit_template",
         HTCONDOR_SUBMIT_FILE_DEFAULT_CPU
         if not request_gpus
         else HTCONDOR_SUBMIT_FILE_DEFAULT_GPU,
     )
 
-    cvmfs_path = kwargs.get(
+    cvmfs_path = kwargs.pop(
         "cvmfs_path",
         "/cvmfs/sft.cern.ch/lcg/views/LCG_102b_cuda/x86_64-centos7-gcc8-opt/setup.sh",
     )
     # if no venv path is provided, just reload the cvmfs environment
-    venv_path = kwargs.get("venv_path", cvmfs_path)
-    eos_dir = kwargs.get("eos_dir", "/eos/user/c/camontan/data")
+    venv_path = kwargs.pop("venv_path", cvmfs_path)
+    eos_dir = kwargs.pop("eos_dir", "/eos/user/c/camontan/data")
+
+    # if unexpected keyword arguments are passed, raise an error
+    if kwargs:
+        raise ValueError(
+            "Unexpected keyword arguments passed: " + ", ".join(kwargs.keys())
+        )
 
     # create the folder "htcondor_support" in the study folder
     htcondor_support_folder = os.path.join(sim_folder, "htcondor_support")

@@ -113,21 +113,31 @@ def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
         If the simulation study folders are not created.
     """
     sim_folder = os.path.join(simulation_study.study_path, simulation_study.study_name)
-    slurm_instructions = kwargs.get("slurm_instructions", INSTRUCTIONS_SLURM_DEFAULT)
-    stdout_path = kwargs.get("stdout_path", os.path.join(sim_folder, "out"))
-    stdout_path_slurm = kwargs.get("stdout_path_slurm", os.path.join(sim_folder, "out", "slurm.out"))
-    stderr_path = kwargs.get("stderr_path", os.path.join(sim_folder, "err"))
-    stderr_path_slurm = kwargs.get("stderr_path_slurm", os.path.join(sim_folder, "err", "slurm.err"))
-    log_path = kwargs.get("log_path", os.path.join(sim_folder, "log"))
-    request_gpus = kwargs.get("request_gpus", False)
-    request_cpus = kwargs.get("request_cpus", 1)
-    request_ram = kwargs.get("request_ram", 2 * request_cpus)
-    time_limit = kwargs.get("time_limit", "02:00:00")
-    venv_path = kwargs.get("venv_path", "/home/HPC/camontan/anaconda3/bin/activate")
-    partition_option = kwargs.get("partition_option", "slurm_hpc_acc")
-    slurm_submit_template = kwargs.get(
+    slurm_instructions = kwargs.pop("slurm_instructions", INSTRUCTIONS_SLURM_DEFAULT)
+    stdout_path = kwargs.pop("stdout_path", os.path.join(sim_folder, "out"))
+    stdout_path_slurm = kwargs.pop(
+        "stdout_path_slurm", os.path.join(sim_folder, "out", "slurm.out")
+    )
+    stderr_path = kwargs.pop("stderr_path", os.path.join(sim_folder, "err"))
+    stderr_path_slurm = kwargs.pop(
+        "stderr_path_slurm", os.path.join(sim_folder, "err", "slurm.err")
+    )
+    log_path = kwargs.pop("log_path", os.path.join(sim_folder, "log"))
+    request_gpus = kwargs.pop("request_gpus", False)
+    request_cpus = kwargs.pop("request_cpus", 1)
+    request_ram = kwargs.pop("request_ram", 2 * request_cpus)
+    time_limit = kwargs.pop("time_limit", "02:00:00")
+    venv_path = kwargs.pop("venv_path", "/home/HPC/camontan/anaconda3/bin/activate")
+    partition_option = kwargs.pop("partition_option", "slurm_hpc_acc")
+    slurm_submit_template = kwargs.pop(
         "slurm_submit_template", SUBMISSION_SLURM_DEFAULT
     )
+
+    # if unexpected keyword arguments are passed, raise an error
+    if kwargs:
+        raise ValueError(
+            "Unexpected keyword arguments passed: " + ", ".join(kwargs.keys())
+        )
 
     # create the folder "slurm_support" in the study folder
     slurm_support_folder = os.path.join(sim_folder, "slurm_support")
@@ -215,13 +225,16 @@ def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
 
     # specialize the submission file
     slurm_submit_template = slurm_submit_template.replace(
-        "__REPLACE_WITH_SIMPATHS__", '(' + " ".join([f'"{s}"' for s in queue_simpath_list]) + ')'
+        "__REPLACE_WITH_SIMPATHS__",
+        "(" + " ".join([f'"{s}"' for s in queue_simpath_list]) + ")",
     )
     slurm_submit_template = slurm_submit_template.replace(
-        "__REPLACE_WITH_OUTPATHS__", '(' + " ".join([f'"{s}"' for s in queue_outpath_list]) + ')'
+        "__REPLACE_WITH_OUTPATHS__",
+        "(" + " ".join([f'"{s}"' for s in queue_outpath_list]) + ")",
     )
     slurm_submit_template = slurm_submit_template.replace(
-        "__REPLACE_WITH_ERRPATHS__", '(' + " ".join([f'"{s}"' for s in queue_errpath_list]) + ')'
+        "__REPLACE_WITH_ERRPATHS__",
+        "(" + " ".join([f'"{s}"' for s in queue_errpath_list]) + ")",
     )
     slurm_submit_template = slurm_submit_template.replace(
         "__REPLACE_WITH_MAIN_FILE__", simulation_study.main_file
