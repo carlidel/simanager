@@ -277,6 +277,8 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
             initial_instructions + "\n" + main_file_content + "\n" + final_instructions
         )
 
+        main_file_content = main_file_content.replace("__REPLACE_WITH_CASENAME__", sim)
+
         with open(main_file, "w", encoding="utf-8") as f:
             f.write(main_file_content)
 
