@@ -226,7 +226,6 @@ class SimulationStudy:
                 parameters = yaml.safe_load(f)
 
             for c in combination:
-                print(c[2])
                 update_nested_dict(parameters, c[0], c[2])
 
             parameters["simulation_status"] = "not_started"
