@@ -61,6 +61,9 @@ try:
 except ModuleNotFoundError:
     print("Numba is not installed")
 
+# print python path
+print(f"Python path: {sys.executable}")
+
 # sleep for 1 second
 time.sleep(1)
 
