@@ -2,13 +2,19 @@ import os
 import pickle
 import shutil
 from dataclasses import asdict, dataclass, field
-from multiprocessing import Manager, Pool
 
 import numpy as np
 import yaml
 
 from .parameter_inspection import ParameterInspection
-from .tools import clone_folder_content, float_filename_fomratter, update_nested_dict
+from .tools import (
+    clone_folder_content,
+    float_filename_fomratter,
+    float_representer,
+    int_representer,
+    numpy_scalar_representer,
+    update_nested_dict,
+)
 
 
 @dataclass
@@ -20,7 +26,8 @@ class SimulationStudy:
     study_name : str
         The name of the study.
     study_path : str, optional
-        The path to the study folder. The default is os.getcwd().
+        The path to the study folder. If it is set at "./", the study folder
+        will be created in the current working directory.
     original_folder : str
         The path to the folder containing the original files to clone.
     main_file : str
@@ -37,11 +44,27 @@ class SimulationStudy:
     original_folder: str
     main_file: str
     config_file: str
-    parameters_inspected: list[ParameterInspection] = field(default_factory=list)
+    parameters_inspected: list[ParameterInspection]
     folders_created: bool = False
 
     def __post_init__(self):
+        if self.study_path == "./":
+            self.study_path = os.getcwd()
         self.original_folder = os.path.abspath(self.original_folder)
+        # construct from the list of parameters inspected the list of parameters
+        # using the dataclass ParameterInspection
+        if self.parameters_inspected is None:
+            self.parameters_inspected = []
+        else:
+            self.parameters_inspected = [
+                ParameterInspection.from_dict(p) for p in self.parameters_inspected
+            ]
+
+        # Register the custom representers for numerical types
+        yaml.add_representer(int, int_representer)
+        yaml.add_representer(float, float_representer)
+        yaml.add_representer(np.int64, numpy_scalar_representer)
+        yaml.add_representer(np.float64, numpy_scalar_representer)
 
     @classmethod
     def load_folder(cls, folder_path: str):
@@ -82,17 +105,16 @@ class SimulationStudy:
         p_file_names = [p.parameter_file_name for p in self.parameters_inspected]
 
         single_combinations = []
-        for idx in p_idx:
-            if p_idx == -1:
-                single_combinations.append(
-                    (
-                        p_names[idx],
-                        p_file_names[idx],
-                        p_values[idx],
-                        len(p_values[idx]),
-                        "single",
-                    )
+        for idx in np.where(p_idx == -1)[0]:
+            single_combinations.append(
+                (
+                    p_names[idx],
+                    p_file_names[idx],
+                    p_values[idx],
+                    len(p_values[idx]),
+                    "single",
                 )
+            )
 
         unique_idx = np.unique(p_idx[p_idx != -1])
         joined_combinations = []
@@ -137,24 +159,28 @@ class SimulationStudy:
         total_combinations = np.prod([c[3] for c in combinations])
         print(f"Total number of parameter combinations: {total_combinations}")
 
-        for i in range(total_combinations):
+        for _ in range(total_combinations):
             # get the current combination
             current_combination = []
             for j, c in enumerate(combinations):
                 if c[4] == "single":
-                    current_combination.append((c[0], c[1], c[2][current_idx[j]], c[4]))
+                    current_combination.append(
+                        (c[0], c[1], c[2][current_idx[j]], c[4], current_idx[j])
+                    )
                 elif c[4] == "multi":
                     for k, v in enumerate(c[2]):
                         current_combination.append(
-                            (c[0][k], c[1][k], v[current_idx[j]], c[4])
+                            (c[0][k], c[1][k], v[current_idx[j]], c[4], current_idx[j])
                         )
             # update the indices
-            current_idx += 1
-            for idx, max_val in zip(current_idx, n_values):
+            current_idx[0] += 1
+            for i, (idx, max_val) in enumerate(zip(current_idx, n_values)):
                 if idx == max_val:
-                    current_idx[idx] = 0
-                else:
-                    break
+                    current_idx[i] = 0
+                    if i + 1 < len(current_idx):
+                        current_idx[i + 1] += 1
+                    else:
+                        pass
 
             yield current_combination
 
@@ -183,9 +209,9 @@ class SimulationStudy:
 
         # create a folder for each parameter combination
         simulation_combos = {}
-        for i, combination in enumerate(self.yield_parameter_combinations()):
+        for combination in self.yield_parameter_combinations():
             str_blocks = [
-                c[1] + "_" + float_filename_fomratter(c[2]) for c in combination
+                c[1] + "_" + float_filename_fomratter(c[2], c[4]) for c in combination
             ]
             foldername = "case_" + "_".join(str_blocks)
             folder_path = os.path.join(main_folder, "scan", foldername)
@@ -200,6 +226,7 @@ class SimulationStudy:
                 parameters = yaml.safe_load(f)
 
             for c in combination:
+                print(c[2])
                 update_nested_dict(parameters, c[0], c[2])
 
             parameters["simulation_status"] = "not_started"
@@ -353,7 +380,14 @@ class SimulationStudy:
             print(sim)
         print("------------------------------------------------------------")
 
-    def reset_simulations(self, reset_all=False, restore_original=False):
+    def reset_simulations(
+        self,
+        reset_all=False,
+        restore_original=False,
+        clear_out_folder=False,
+        clear_err_folder=False,
+        clear_log_folder=False,
+    ):
         """Reset the simulation folders to the initial state.
 
         Parameters
@@ -364,6 +398,12 @@ class SimulationStudy:
         restore_original : bool
             If True, restores the original folder content. If False, leaves the
             current folder content and only resets the simulation status.
+        clear_out_folder : bool
+            If True, clears the out folder. The default is False.
+        clear_err_folder : bool
+            If True, clears the err folder. The default is False.
+        clear_log_folder : bool
+            If True, clears the log folder. The default is False.
         """
         main_folder = os.path.join(self.study_path, self.study_name)
         simulation_info_file = os.path.join(main_folder, "simulation_info.yaml")
@@ -391,9 +431,13 @@ class SimulationStudy:
             )
 
         for sim in sim_to_reset:
+            print(f"Resetting {sim}")
             folder_path = os.path.join(main_folder, "scan", sim)
             if restore_original:
+                # remove the content of the folder
                 shutil.rmtree(folder_path)
+                # create the folder
+                os.makedirs(folder_path, exist_ok=True)
                 clone_folder_content(
                     os.path.join(main_folder, "original_folder"), folder_path
                 )
@@ -437,3 +481,18 @@ class SimulationStudy:
         # save the simulation info
         with open(simulation_info_file, "w", encoding="utf-8") as f:
             yaml.dump(simulation_info, f)
+
+        if clear_out_folder:
+            out_folder = os.path.join(main_folder, "out")
+            for f in os.listdir(out_folder):
+                os.remove(os.path.join(out_folder, f))
+
+        if clear_err_folder:
+            err_folder = os.path.join(main_folder, "err")
+            for f in os.listdir(err_folder):
+                os.remove(os.path.join(err_folder, f))
+
+        if clear_log_folder:
+            log_folder = os.path.join(main_folder, "log")
+            for f in os.listdir(log_folder):
+                os.remove(os.path.join(log_folder, f))

@@ -15,9 +15,13 @@ def clone_folder_content(source_folder, destination_folder):
             shutil.copy2(source_path, destination_path)
 
 
-def float_filename_fomratter(float_number, truncate=3):
+def float_filename_fomratter(float_number, alternative_idx=0, truncate=3):
     """Formats a float number to a string with a maximum number of digits."""
-    string = "{:.{prec}}".format(float(float_number), prec=truncate)
+    try:
+        string = "{:.{prec}}".format(float(float_number), prec=truncate)
+    # if the float_number is not a float, use the alternative_idx
+    except TypeError:
+        string = str(alternative_idx)
     string = string.replace(".", "d")
     return string
 
@@ -49,3 +53,18 @@ def update_nested_dict(nested_dict, key_chain, value):
         if not isinstance(current_dict, dict):
             raise ValueError(f"Key '{key}' is not a dictionary")
     current_dict[keys[-1]] = value
+
+
+# Define a custom representer for integers
+def int_representer(dumper, data):
+    return dumper.represent_scalar("tag:yaml.org,2002:int", str(data))
+
+
+# Define a custom representer for floats
+def float_representer(dumper, data):
+    return dumper.represent_scalar("tag:yaml.org,2002:float", format(data))
+
+
+# Define a custom representer for NumPy numerical types
+def numpy_scalar_representer(dumper, data):
+    return dumper.represent_scalar("tag:yaml.org,2002:float", format(float(data)))

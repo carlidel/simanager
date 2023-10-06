@@ -251,7 +251,7 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     final_instructions = final_instructions.replace("__REPLACE_WITH_EOS_DIR__", eos_dir)
 
     queue_file_content = ""
-    for i, sim in enumerate(simulations_to_run):
+    for sim in simulations_to_run:
         folder_path = os.path.join(root_folder, "scan", sim)
         main_file = os.path.join(folder_path, simulation_study.main_file)
 

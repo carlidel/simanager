@@ -1,11 +1,4 @@
-import os
-import pickle
-import re
-import shutil
-import subprocess
-from dataclasses import asdict, dataclass, field
-from datetime import datetime
-from multiprocessing import Manager, Pool
+from dataclasses import dataclass
 
 import numpy as np
 import yaml
@@ -35,6 +28,12 @@ class ParameterInspection:
         return cls.from_dict(dictionary)
 
     def __post_init__(self):
+        if self.inspection_method == "range":
+            if not (self.min_value is not None and self.max_value is not None):
+                raise ValueError(
+                    "If inspection_method is range, min_value and max_value must be specified."
+                )
+            self.values = list(np.arange(self.min_value, self.max_value))
         if self.inspection_method == "linspace":
             if not (
                 self.min_value is not None

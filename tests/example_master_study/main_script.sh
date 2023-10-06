@@ -1,0 +1,1 @@
+python script.py --yaml_path "$SIMPATH/params.yaml"

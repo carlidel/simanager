@@ -48,7 +48,7 @@ ERRPATHS=__REPLACE_WITH_ERRPATHS__
 for SIMPATH OUTPATH ERRPATH in $(paste -d' ' <(echo $SIMPATHS) <(echo $OUTPATHS) <(echo $ERRPATHS))
 do
     # submit the job
-    sbatch __REPLACE_WITH_SLURM_SUBMIT_FILE__ $SIMPATH $OUTPATH $ERRPATH
+    sbatch __REPLACE_WITH_SLURM_SUBMIT_FILE__ $SIMPATH __REPLACE_WITH_MAINFILE__ $OUTPATH $ERRPATH
 done
 
 """
@@ -182,7 +182,7 @@ def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
     queue_simpath_list = []
     queue_outpath_list = []
     queue_errpath_list = []
-    for i, sim in enumerate(simulations_to_run):
+    for sim in simulations_to_run:
         folder_path = os.path.join(root_folder, "scan", sim)
 
         queue_simpath_list.append(folder_path)
@@ -202,6 +202,9 @@ def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
     )
     slurm_submit_template = slurm_submit_template.replace(
         "__REPLACE_WITH_ERRPATHS__", '"' + " ".join(queue_errpath_list) + '"'
+    )
+    slurm_submit_template = slurm_submit_template.replace(
+        "__REPLACE_WITH_MAIN_FILE__", simulation_study.main_file
     )
 
     slurm_submit_template = slurm_submit_template.replace(

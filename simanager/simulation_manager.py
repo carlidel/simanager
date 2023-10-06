@@ -136,7 +136,7 @@ class SimulationStudy:
         total_combinations = np.prod([c[3] for c in combinations])
         print(f"Total number of parameter combinations: {total_combinations}")
 
-        for i in range(total_combinations):
+        for _ in range(total_combinations):
             # get the current combination
             current_combination = []
             for j, c in enumerate(combinations):
@@ -182,7 +182,7 @@ class SimulationStudy:
 
         # create a folder for each parameter combination
         simulation_combos = {}
-        for i, combination in enumerate(self.yield_parameter_combinations()):
+        for combination in self.yield_parameter_combinations():
             str_blocks = [
                 c[1] + "_" + float_filename_fomratter(c[2]) for c in combination
             ]
