@@ -22,6 +22,8 @@ def float_filename_fomratter(float_number, alternative_idx=0, truncate=3):
     # if the float_number is not a float, use the alternative_idx
     except TypeError:
         string = str(alternative_idx)
+    except ValueError:
+        string = str(alternative_idx)
     string = string.replace(".", "d")
     return string
 
