@@ -38,6 +38,7 @@ def generate_parser():
     run_local_parser.add_argument(
         "config",
         help="Configuration file",
+        default="run_config.yaml",
     )
     run_local_parser.add_argument("--simpath", help="Simulation path", default="./")
 
@@ -49,6 +50,7 @@ def generate_parser():
     run_htcondor_parser.add_argument(
         "config",
         help="Configuration file",
+        default="run_config.yaml",
     )
     run_htcondor_parser.add_argument("--simpath", help="Simulation path", default="./")
 
@@ -60,6 +62,7 @@ def generate_parser():
     run_slurm_parser.add_argument(
         "config",
         help="Configuration file",
+        default="run_config.yaml",
     )
     run_slurm_parser.add_argument("--simpath", help="Simulation path", default="./")
 
@@ -141,6 +144,10 @@ def main():
         # load the config yaml file into a dict
         with open(args.config, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
+        if "run_local" in config:
+            config = config["run_local"]
+            if config is None:
+                config = {}
         # run the simulation, pass the config dict as kwargs
         job_run_local(sim, **config)
         sim.print_sim_status()
@@ -150,6 +157,10 @@ def main():
         # load the config yaml file into a dict
         with open(args.config, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
+        if "run_htcondor" in config:
+            config = config["run_htcondor"]
+            if config is None:
+                config = {}
         # run the simulation, pass the config dict as kwargs
         job_run_htcondor(sim, **config)
         sim.print_sim_status()
@@ -159,6 +170,10 @@ def main():
         # load the config yaml file into a dict
         with open(args.config, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
+        if "run_slurm" in config:
+            config = config["run_slurm"]
+            if config is None:
+                config = {}
         # run the simulation, pass the config dict as kwargs
         job_run_slurm(sim, **config)
         sim.print_sim_status()

@@ -1,0 +1,12 @@
+run_local:
+  gpu_available_list: [0, 1, 2, 3]
+run_htcondor:
+  time_limit: testmatch
+  request_gpus: True
+  request_cpus: 1
+  cvmfs_path: /cvmfs/sft.cern.ch/lcg/views/LCG_104a_cuda/x86_64-centos7-gcc11-opt/setup.sh
+  venv_path: /path/to/my/venv
+  eos_dir: /eos/user/c/camontan/data
+run_slurm:
+  venv_path: /path/to/my/venv
+  time_limit: 02:00:00
