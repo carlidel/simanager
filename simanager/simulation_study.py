@@ -516,3 +516,11 @@ class SimulationStudy:
             log_folder = os.path.join(main_folder, "log")
             for f in os.listdir(log_folder):
                 os.remove(os.path.join(log_folder, f))
+
+    def nuke_simulation(self):
+        """Removes the entire folder where the simulation is contained!!!"""
+        print("SO LONG AND THANKS FOR ALL THE FISH!")
+        main_folder = os.path.join(self.study_path, self.study_name)
+        shutil.rmtree(main_folder)
+        print("NUKING COMPLETE!")
+        print("DO YOU FEEL LIKE OPPENHEIMER YET?")

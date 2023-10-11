@@ -15,6 +15,12 @@ setup(
     packages=find_packages(),
     install_requires=["numpy", "pyyaml"],
     include_package_data=True,
+    # Add command line tools
+    entry_points={
+        "console_scripts": [
+            "simanager=simanager.cli_tools:main",
+        ],
+    },
     # MIT license
     license="MIT",
 )
