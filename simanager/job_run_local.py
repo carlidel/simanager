@@ -21,7 +21,7 @@ OUTPUT_DIR=$SIMPATH
 """
 
 
-def execute_command_on_gpu(
+def execute_command(
     command,
     folder_path,
     stdout_file,
@@ -31,7 +31,7 @@ def execute_command_on_gpu(
     lock,
     simulation_study: SimulationStudy,
 ):
-    """Executes a command on a GPU.
+    """Executes a command.
 
     Parameters
     ----------
@@ -44,7 +44,8 @@ def execute_command_on_gpu(
     stderr_file : file
         The file where the stderr will be redirected.
     gpu_id : int
-        The ID of the GPU to use.
+        The ID of the GPU to use. If it is -1, the command will be executed on
+        the CPU.
     simulation_info : dict
         The dictionary containing the simulation info. Composed of manager.list
         objects, so it can be shared between processes.
@@ -53,9 +54,15 @@ def execute_command_on_gpu(
     simulation_study : SimulationStudy
         The simulation study.
     """
+    # check if the run flag is set to 0
+    if simulation_info["run_flag"].value == 0:
+        print(f"Skipping simulation in folder {folder_path}...")
+        return False
+
     # Set the CUDA_VISIBLE_DEVICES environment variable to the GPU ID
     env = os.environ.copy()
-    env["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+    if gpu_id != -1:
+        env["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
     simulation_name = os.path.basename(folder_path)
 
     # Update the simulation status
@@ -68,7 +75,10 @@ def execute_command_on_gpu(
     try:
         stdout_file = open(stdout_file, "w", encoding="utf-8")
         stderr_file = open(stderr_file, "w", encoding="utf-8")
-        print(f"Running simulation in folder {folder_path} on GPU {gpu_id}...")
+        print(
+            f"Running simulation in folder {folder_path}"
+            + (f" on GPU {gpu_id}..." if gpu_id != -1 else "on CPU...")
+        )
         subprocess.run(
             command,
             stdout=stdout_file,
@@ -81,7 +91,8 @@ def execute_command_on_gpu(
         stderr_file.close()
     except KeyboardInterrupt:
         print(
-            f"KeyboardInterrupt detected, stopping simulation in folder {folder_path} on GPU {gpu_id}..."
+            f"KeyboardInterrupt detected, stopping simulation in folder {folder_path}"
+            + (f" on GPU {gpu_id}..." if gpu_id != -1 else "on CPU...")
         )
         stdout_file.close()
         stderr_file.close()
@@ -90,27 +101,32 @@ def execute_command_on_gpu(
             simulation_info["sim_running"].remove(simulation_name)
             simulation_info["sim_interrupted"].append(simulation_name)
             simulation_study.set_sim_status(simulation_name, "interrupted")
+        return False
     except subprocess.CalledProcessError:
         print(
-            f"Error running simulation in folder {simulation_name} on GPU {gpu_id}..."
+            f"Error running simulation in folder {simulation_name}"
+            + (f" on GPU {gpu_id}..." if gpu_id != -1 else "on CPU...")
         )
         # Update the simulation status
         with lock:
             simulation_info["sim_running"].remove(simulation_name)
             simulation_info["sim_error"].append(simulation_name)
             simulation_study.set_sim_status(simulation_name, "error")
+        return False
     else:
         print(
-            f"Finished running simulation in folder {simulation_name} on GPU {gpu_id}..."
+            f"Finished running simulation in folder {simulation_name}"
+            + (f" on GPU {gpu_id}..." if gpu_id != -1 else "on CPU...")
         )
         # Update the simulation status once the simulation is finished
         with lock:
             simulation_info["sim_running"].remove(simulation_name)
             simulation_info["sim_finished"].append(simulation_name)
             simulation_study.set_sim_status(simulation_name, "finished")
+        return True
 
 
-def gpu_command_executor(args):
+def command_executor(args):
     """Executes a command on a GPU.
 
     Parameters
@@ -123,7 +139,7 @@ def gpu_command_executor(args):
     int
         The return code of the process.
     """
-    execute_command_on_gpu(*args)
+    execute_command(*args)
     return 0
 
 
@@ -151,6 +167,10 @@ def job_run_local(simulation_study: SimulationStudy, **kwargs):
         The path to the folder where the log files will be saved.
     gpu_available_list : list
         The list of available GPUs.
+    n_concurrent_jobs : int
+        To be used if gpu_available_list is not passed. The number of
+        concurrent jobs to run. By default, it is set to the number of CPUs
+        available.
 
     Raises
     ------
@@ -169,6 +189,7 @@ def job_run_local(simulation_study: SimulationStudy, **kwargs):
     log_path = kwargs.pop("log_path", os.path.join(sim_folder, "log"))
 
     gpu_available_list = kwargs.pop("gpu_available_list", [])
+    n_concurrent_jobs = kwargs.pop("n_concurrent_jobs", os.cpu_count())
 
     # if unexpected keyword arguments are passed, raise an error
     if kwargs:
@@ -216,97 +237,84 @@ def job_run_local(simulation_study: SimulationStudy, **kwargs):
 
     if n_gpu_available == 0:
         for i, sim in enumerate(simulations_to_run):
-            stdout_file_list.append(
-                open(os.path.join(stdout_path, sim + ".out"), "w", encoding="utf-8")
-            )
-            stderr_file_list.append(
-                open(os.path.join(stderr_path, sim + ".err"), "w", encoding="utf-8")
-            )
+            stdout_file_list.append(os.path.join(stdout_path, sim + ".out"))
+            stderr_file_list.append(os.path.join(stderr_path, sim + ".err"))
 
-        subprocess_list = []
+        manager = Manager()
+        shared_sim_status = {
+            "sim_not_started": manager.list(simulation_info["sim_not_started"]),
+            "sim_finished": manager.list(simulation_info["sim_finished"]),
+            "sim_interrupted": manager.list(simulation_info["sim_interrupted"]),
+            "sim_error": manager.list(simulation_info["sim_error"]),
+            "sim_running": manager.list(simulation_info["sim_running"]),
+            "run_flag": manager.Value("i", 1),
+        }
+        print("Shared simulation status:", shared_sim_status["sim_not_started"])
+        lock = manager.Lock()
+
+        argmunet_list = []
         for i, sim in enumerate(simulations_to_run):
             folder_path = os.path.join(root_folder, "scan", sim)
             main_file = os.path.join(folder_path, simulation_study.main_file)
 
-            subprocess_list.append(
-                subprocess.Popen(
-                    ["bash", main_file],
-                    stdout=stdout_file_list[i],
-                    stderr=stderr_file_list[i],
-                    cwd=folder_path,
+            argmunet_list.append(
+                (
+                    [
+                        "bash",
+                        os.path.join(
+                            root_folder, "scan", sim, simulation_study.main_file
+                        ),
+                    ],
+                    os.path.join(root_folder, "scan", sim),
+                    stdout_file_list[i],
+                    stderr_file_list[i],
+                    -1,
+                    shared_sim_status,
+                    lock,
+                    simulation_study,
                 )
             )
-            print(f"Running simulation {i} in folder {folder_path}...")
-
-            # update the simulation status
-            simulation_info["sim_not_started"].remove(sim)
-            simulation_info["sim_running"].append(sim)
-            simulation_study.set_sim_status(sim, "running")
-
-            # save the simulation info
-            with open(simulation_info_file, "w", encoding="utf-8") as f:
-                yaml.dump(simulation_info, f)
-
-        # wait for all the simulations to finish but while also checking if a
-        # KeyboardInterrupt occurred, if it did, stop the simulations still
-        # running and update the simulation info accordingly
         try:
             starting_time = datetime.now()
             print("Running simulations...")
+            pool = Pool(n_concurrent_jobs)
+            result = pool.map_async(command_executor, argmunet_list)
+            pool.close()
             print(f"Started running at {starting_time}...")
-            for i, sim in enumerate(simulations_to_run):
-                subprocess_list[i].wait()
+            result.get()
         except KeyboardInterrupt:
-            print("KeyboardInterrupt detected, stopping simulations...")
-            for i, sim in enumerate(simulations_to_run):
-                # check if the simulation is still running
-                # if not, update simulation_info accordingly
-                if subprocess_list[i].poll() is not None:
-                    # check the return code
-                    if subprocess_list[i].returncode == 0:
-                        simulation_info["sim_finished"].append(sim)
-                        simulation_study.set_sim_status(sim, "finished")
-                    else:
-                        simulation_info["sim_error"].append(sim)
-                        simulation_study.set_sim_status(sim, "error")
-                    simulation_info["sim_running"].remove(sim)
-                else:
-                    # if still running, kill the process
-                    subprocess_list[i].kill()
-                    simulation_info["sim_interrupted"].append(sim)
-                    simulation_info["sim_running"].remove(sim)
-                    simulation_study.set_sim_status(sim, "interrupted")
+            print(
+                "KeyboardInterrupt detected, wait for running simulations to finish gracefully..."
+            )
+            # set the run flag to 0
+            with lock:
+                shared_sim_status["run_flag"].value = 0
+
+            try:
+                result.get()
+                pool.join()
+            except KeyboardInterrupt:
+                print("Ok then, force stop the simulations...")
+                pool.terminate()
+                pool.join()
         else:
             finishing_time = datetime.now()
             print("Finished running simulations...")
             print(f"Finished running at {finishing_time}...")
             print(f"Total running time: {finishing_time - starting_time}...")
 
-            # update the simulation status
-            for i, sim in enumerate(simulations_to_run):
-                # check the return code
-                if subprocess_list[i].returncode == 0:
-                    simulation_info["sim_finished"].append(sim)
-                    simulation_study.set_sim_status(sim, "finished")
-                else:
-                    simulation_info["sim_error"].append(sim)
-                    simulation_study.set_sim_status(sim, "error")
-                try:
-                    simulation_info["sim_running"].remove(sim)
-                except ValueError:
-                    print(
-                        f"Simulation {sim} was not running, but it was not finished either?"
-                    )
-        finally:
-            # save the simulation info
-            with open(simulation_info_file, "w", encoding="utf-8") as f:
-                yaml.dump(simulation_info, f)
+        # update the simulation status from the shared dictionary
+        simulation_info["sim_not_started"] = list(shared_sim_status["sim_not_started"])
+        simulation_info["sim_finished"] = list(shared_sim_status["sim_finished"])
+        simulation_info["sim_interrupted"] = list(shared_sim_status["sim_interrupted"])
+        simulation_info["sim_error"] = list(shared_sim_status["sim_error"])
+        simulation_info["sim_running"] = list(shared_sim_status["sim_running"])
 
-            # close the files
-            for f in stdout_file_list:
-                f.close()
-            for f in stderr_file_list:
-                f.close()
+        simulation_info["sim_interrupted"] += simulation_info["sim_running"]
+        simulation_info["sim_running"] = []
+        # save the simulation info
+        with open(simulation_info_file, "w", encoding="utf-8") as f:
+            yaml.dump(simulation_info, f)
     else:
         # In this case, we first separate the simulations to run in groups
         # equal to the number of available GPUs, and then we run each group
@@ -325,6 +333,7 @@ def job_run_local(simulation_study: SimulationStudy, **kwargs):
             "sim_interrupted": manager.list(simulation_info["sim_interrupted"]),
             "sim_error": manager.list(simulation_info["sim_error"]),
             "sim_running": manager.list(simulation_info["sim_running"]),
+            "run_flag": manager.Value("i", 1),
         }
         print("Shared simulation status:", shared_sim_status["sim_not_started"])
         lock = manager.Lock()
@@ -359,25 +368,32 @@ def job_run_local(simulation_study: SimulationStudy, **kwargs):
             pool_list = []
             for key in argument_dict.keys():
                 pool_list.append(Pool(1))
-                pool_list[-1].map_async(gpu_command_executor, argument_dict[key])
+                pool_list[-1].map_async(command_executor, argument_dict[key])
                 print(f"Created a pool with {len(argument_dict[key])} jobs...")
             for pool in pool_list:
                 pool.close()
+            # join the pools
+            for pool in pool_list:
+                pool.join()
         except KeyboardInterrupt:
             stopping_time = datetime.now()
-            print("KeyboardInterrupt detected, stopping simulations...")
-            print(f"Stopped running at {stopping_time}...")
-            for pool in pool_list:
+            print(
+                "KeyboardInterrupt detected, wait for running simulations to finish gracefully..."
+            )
+            # set the run flag to 0
+            with lock:
+                shared_sim_status["run_flag"].value = 0
+
+            try:
+                result.get()
+                pool.join()
+            except KeyboardInterrupt:
+                print("Ok then! Force stop the simulations...")
                 pool.terminate()
                 pool.join()
-        else:
-            stopping_time = datetime.now()
-            print("Finished running simulations...")
-            print(f"Finished running at {stopping_time}...")
-            # close the pools
-            for pool in pool_list:
-                pool.join()
         stopping_time = datetime.now()
+        print("Finished running simulations...")
+        print(f"Finished running at {stopping_time}...")
         print(f"Total running time: {stopping_time - starting_time}...")
         print("Updating simulation info...")
         # update the simulation status from the shared dictionary
@@ -386,6 +402,9 @@ def job_run_local(simulation_study: SimulationStudy, **kwargs):
         simulation_info["sim_interrupted"] = list(shared_sim_status["sim_interrupted"])
         simulation_info["sim_error"] = list(shared_sim_status["sim_error"])
         simulation_info["sim_running"] = list(shared_sim_status["sim_running"])
+
+        simulation_info["sim_interrupted"] += simulation_info["sim_running"]
+        simulation_info["sim_running"] = []
         # save the simulation info
         with open(simulation_info_file, "w", encoding="utf-8") as f:
             yaml.dump(simulation_info, f)
