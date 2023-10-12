@@ -46,6 +46,14 @@ class ParameterInspection:
     parameter_file_name : str, optional
         Name of the parameter to be used when composing the folder name of the
         simulation. If None, the parameter_name is used.
+    force_type : str, optional
+        Force the type of the parameter to be inspected. Must be one of the
+        following:
+        - int: Force the parameter to be an integer.
+        - float: Force the parameter to be a float.
+        - bool: Force the parameter to be a boolean.
+        - str: Force the parameter to be a string.
+        If None, the type of the parameter is not forced. By default None.
     """
 
     parameter_name: str
@@ -58,6 +66,7 @@ class ParameterInspection:
     combination_idx: int = -1
     combination_method: str = None
     parameter_file_name: str = None
+    force_type: str = None
 
     @classmethod
     def from_dict(cls, dictionary):
@@ -76,6 +85,7 @@ class ParameterInspection:
                     "If inspection_method is range, min_value and max_value must be specified."
                 )
             self.values = list(np.arange(self.min_value, self.max_value))
+            self.values = [self._force_type(v, int) for v in self.values]
         if self.inspection_method == "linspace":
             if not (
                 self.min_value is not None
@@ -88,6 +98,7 @@ class ParameterInspection:
             self.values = list(
                 np.linspace(self.min_value, self.max_value, self.n_samples)
             )
+            self.values = [self._force_type(v, float) for v in self.values]
         elif self.inspection_method == "logspace":
             if not (
                 self.min_value is not None
@@ -102,6 +113,7 @@ class ParameterInspection:
                     np.log10(self.min_value), np.log10(self.max_value), self.n_samples
                 )
             )
+            self.values = [self._force_type(v, float) for v in self.values]
         elif self.inspection_method == "custom":
             if not self.values is not None:
                 raise ValueError(
@@ -110,3 +122,15 @@ class ParameterInspection:
 
         if self.parameter_file_name is None:
             self.parameter_file_name = self.parameter_name
+
+    def _force_type(self, value, default):
+        if self.force_type == "int":
+            return int(value)
+        elif self.force_type == "float":
+            return float(value)
+        elif self.force_type == "bool":
+            return bool(value)
+        elif self.force_type == "str":
+            return str(value)
+        else:
+            return default(value)
