@@ -1,0 +1,47 @@
+name: Update Version and Commit
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  update_version:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get latest tag
+        id: get_tag
+        run: |
+          git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+          echo "Latest tag: $(git describe --tags $(git rev-list --tags --max-count=1))" >> tag.txt
+        shell: bash
+
+      - name: Extract version from tag
+        id: extract_version
+        run: |
+          VERSION=$(cat tag.txt | grep -oE "[0-9]+\.[0-9]+\.[0-9]+")
+          echo "::set-output name=version::$VERSION"
+        shell: bash
+
+      - name: Update setup.py with new version
+        run: |
+          sed -i 's/\(version=\).*/\1"${{ steps.extract_version.outputs.version }}",/' setup.py
+        shell: bash
+
+      - name: Update docs/config.py with new version
+        run: |
+          sed -i 's/\(release = \)"[^"]*"/\1"${{ steps.extract_version.outputs.version }}"/' docs/config.py
+        shell: bash
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add setup.py docs/config.py
+          git commit -m "Update version to ${{ steps.extract_version.outputs.version }}"
+          git push
+        shell: bash

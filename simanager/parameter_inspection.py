@@ -14,13 +14,15 @@ class ParameterInspection:
     parameter_name : str
         Name of the parameter to be varied. Must be a parameter name contained
         in the YAML master file. The naming convention for nested parameters is
-        `parent_parameter/child_parameter`.
+        'parent_parameter/child_parameter'.
     inspection_method : str
         Method to be used for parameter inspection. Must be one of the following:
-        - range: Inspect the parameter by means of np.arange.
-        - linspace: Inspect the parameter by means of np.linspace.
-        - logspace: Inspect the parameter by means of np.logspace.
-        - custom: Inspect the parameter by means of a custom list of values.
+
+        - 'range': Inspect the parameter by means of np.arange.
+        - 'linspace': Inspect the parameter by means of np.linspace.
+        - 'logspace': Inspect the parameter by means of np.logspace.
+        - 'custom': Inspect the parameter by means of a custom list of values.
+
     min_value : float, optional
         Minimum value of the parameter to be inspected. Must be specified if
         inspection_method is range, linspace, or logspace.
@@ -28,8 +30,8 @@ class ParameterInspection:
         Maximum value of the parameter to be inspected. Must be specified if
         inspection_method is range, linspace, or logspace.
     n_samples : int, optional
-        Number of samples to be inspected. Must be specified if inspection_method
-        is linspace or logspace.
+        Number of samples to be inspected. Must be specified if
+        inspection_method is linspace or logspace.
     values : list, optional
         List of values to be inspected. Must be specified if inspection_method
         is custom.
@@ -39,20 +41,22 @@ class ParameterInspection:
         other parameter scans.
     combination_method : str, optional
         Method to be used for parameter combination. Must be one of the following:
-        - meshgrid: Combine the parameter with other parameter scans by means of
-            np.meshgrid.
-        - individual: Combine the parameter with other parameter scans as if they
-            were combined with a zip function.
+
+        - 'meshgrid': Combine the parameter with other parameter scans by means of np.meshgrid.
+        - 'individual': Combine the parameter with other parameter scans as if they were combined with a zip function.
+
     parameter_file_name : str, optional
         Name of the parameter to be used when composing the folder name of the
         simulation. If None, the parameter_name is used.
     force_type : str, optional
         Force the type of the parameter to be inspected. Must be one of the
         following:
-        - int: Force the parameter to be an integer.
-        - float: Force the parameter to be a float.
-        - bool: Force the parameter to be a boolean.
-        - str: Force the parameter to be a string.
+
+        - 'int': Force the parameter to be an integer.
+        - 'float': Force the parameter to be a float.
+        - 'bool': Force the parameter to be a boolean.
+        - 'str': Force the parameter to be a string.
+
         If None, the type of the parameter is not forced. By default None.
     """
 

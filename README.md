@@ -40,6 +40,7 @@ main_file: "main_script.sh"
 config_file: "params.yaml"
 # The following parameters are used to generate the study
 parameters_inspected:
+  
   - parameter_name: "numeric_parameters/max_attempts"
     inspection_method: "range"
     min_value: 1
