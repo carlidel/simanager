@@ -37,6 +37,8 @@ jobs:
           python-version: 3.9
       - name: Install Dependencies
         run: pip install sphinx sphinx_rtd_theme sphinx_mdinclude
+      - name: Install simanager
+        run: pip install -e .
       - name: Build Documentation
         run: |
           cd docs
