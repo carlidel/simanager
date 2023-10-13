@@ -5,8 +5,12 @@
    :maxdepth: 2
    :caption: Contents:
 
-README.MD
+SIMANAGER
 =========
+
+README.MD
+---------
+
 .. mdinclude:: ../README.md
 
 Docstrings
