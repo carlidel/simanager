@@ -91,13 +91,12 @@ log        = __REPLACE_WITH_LOG_PATH__
 
 transfer_output_files = ""
 
-requirements = (TARGET.OpSysAndVer =?= "CentOS7")
-
 request_cpus = __REPLACE_WITH_REQUEST_CPUS__
 
 +JobFlavour = "__REPLACE_WITH_TIME_LIMIT__"
 
 +AccountingGroup = "group_u_BE.ABP.normal"
++WantOS = "el9"
 
 queue Executable,Simpath,Outpath,Errpath from __REPLACE_WITH_QUEUE_FILE__
 """
@@ -114,7 +113,7 @@ log        = __REPLACE_WITH_LOG_PATH__
 
 transfer_output_files = ""
 
-requirements = (regexp("(V100|A100)", Target.CUDADeviceName) && (TARGET.OpSysAndVer =?= "CentOS7"))
+requirements = (regexp("(V100|A100)", Target.CUDADeviceName)
 
 request_GPUs = __REPLACE_WITH_REQUEST_GPUS__
 request_cpus = __REPLACE_WITH_REQUEST_CPUS__
@@ -122,6 +121,7 @@ request_cpus = __REPLACE_WITH_REQUEST_CPUS__
 +JobFlavour = "__REPLACE_WITH_TIME_LIMIT__"
 
 +AccountingGroup = "group_u_BE.ABP.normal"
++WantOS = "el9"
 
 queue Executable,Simpath,Outpath,Errpath from __REPLACE_WITH_QUEUE_FILE__
 """
@@ -168,7 +168,7 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         default is "longlunch".
     cvmfs_path : str
         The path to the CVMFS environment to use.
-        Default is "/cvmfs/sft.cern.ch/lcg/views/LCG_102b_cuda/x86_64-centos7-gcc8-opt/setup.sh".
+        Default is "/cvmfs/sft.cern.ch/lcg/views/LCG_104a_cuda/x86_64-el9-gcc11-opt/setup.sh".
     venv_path : str
         The path to the virtual environment to use.
         Default is the same as cvmfs_path.
@@ -208,7 +208,7 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
 
     cvmfs_path = kwargs.pop(
         "cvmfs_path",
-        "/cvmfs/sft.cern.ch/lcg/views/LCG_102b_cuda/x86_64-centos7-gcc8-opt/setup.sh",
+        "/cvmfs/sft.cern.ch/lcg/views/LCG_104a_cuda/x86_64-el9-gcc11-opt/setup.sh",
     )
     # if no venv path is provided, just reload the cvmfs environment
     venv_path = kwargs.pop("venv_path", cvmfs_path)

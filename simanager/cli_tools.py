@@ -1,6 +1,8 @@
 # simanager/cli_tool.py
 import argparse
 import os
+import re
+import subprocess
 import sys
 import time
 
@@ -103,6 +105,51 @@ def generate_parser():
     # Subcommand: status
     status_parser = subparsers.add_parser("status", help="Print simulation status")
     status_parser.add_argument("--simpath", help="Simulation path", default="./")
+
+    # Subcommand: cat-err
+    cat_err_parser = subparsers.add_parser(
+        "cat-err", help="Print contents of err files"
+    )
+    cat_err_parser.add_argument("--simpath", help="Simulation path", default="./")
+    cat_err_parser.add_argument("--errpath", help="Error path", default="err")
+    cat_err_parser.add_argument("--idx", help="Simulation index", default=-1, type=int)
+
+    # Subcommand: cat-out
+    cat_out_parser = subparsers.add_parser(
+        "cat-out", help="Print contents of out files"
+    )
+    cat_out_parser.add_argument("--simpath", help="Simulation path", default="./")
+    cat_out_parser.add_argument("--outpath", help="Output path", default="out")
+    cat_out_parser.add_argument("--idx", help="Simulation index", default=-1, type=int)
+
+    # Subcommand: cat-log
+    cat_log_parser = subparsers.add_parser(
+        "cat-log", help="Print contents of log files"
+    )
+    cat_log_parser.add_argument("--simpath", help="Simulation path", default="./")
+    cat_log_parser.add_argument("--logpath", help="Log path", default="log")
+    cat_log_parser.add_argument("--idx", help="Simulation index", default=-1, type=int)
+
+    # Subcommand: extract-file
+    extract_file_parser = subparsers.add_parser(
+        "extract-file",
+        help="Extract output files from a simulation and places them in a target folder. If the target folder does not exist, it will be created. If the target file is a symlink, an equivalent symlink will be created in the target folder.",
+    )
+    extract_file_parser.add_argument("--simpath", help="Simulation path", default="./")
+    extract_file_parser.add_argument(
+        "--target", help="Target folder", default="extracted_files"
+    )
+    extract_file_parser.add_argument(
+        "--file",
+        help="Regex of files to extract. If not specified, all .h5 and .pkl files will be extracted.",
+        default=None,
+    )
+
+    # Subcommand: self-update
+    subparsers.add_parser(
+        "self-update",
+        help="CURSED AND CRISPY: Update simanager to the latest version. Assumes that the package is installed with 'pip install -e' and that the directory is a clone of the git repo.",
+    )
 
     return parser
 
@@ -215,6 +262,95 @@ def main():
         sim = SimulationStudy.load_folder(args.simpath)
         # print the simulation status
         sim.print_sim_status()
+    elif args.subcommand == "cat-err":
+        # load the simulation
+        sim = SimulationStudy.load_folder(args.simpath)
+        # get the path of the err folder
+        sim_folder = os.path.join(sim.study_path, sim.study_name)
+        err_folder = os.path.join(sim_folder, args.errpath)
+        err_files = os.listdir(err_folder)
+        if args.idx == -1:
+            # print the contents of all err files
+            for err_file in err_files:
+                with open(os.path.join(err_folder, err_file), "r") as f:
+                    print(f.read())
+        else:
+            # print the contents of the err file with index args.idx
+            with open(os.path.join(err_folder, err_files[args.idx]), "r") as f:
+                print(f.read())
+    elif args.subcommand == "cat-out":
+        # load the simulation
+        sim = SimulationStudy.load_folder(args.simpath)
+        # get the path of the out folder
+        sim_folder = os.path.join(sim.study_path, sim.study_name)
+        out_folder = os.path.join(sim_folder, args.outpath)
+        out_files = os.listdir(out_folder)
+        if args.idx == -1:
+            # print the contents of all out files
+            for out_file in out_files:
+                with open(os.path.join(out_folder, out_file), "r") as f:
+                    print(f.read())
+        else:
+            # print the contents of the out file with index args.idx
+            with open(os.path.join(out_folder, out_files[args.idx]), "r") as f:
+                print(f.read())
+    elif args.subcommand == "cat-log":
+        # load the simulation
+        sim = SimulationStudy.load_folder(args.simpath)
+        # get the path of the log folder
+        sim_folder = os.path.join(sim.study_path, sim.study_name)
+        log_folder = os.path.join(sim_folder, args.logpath)
+        log_files = os.listdir(log_folder)
+        if args.idx == -1:
+            # print the contents of all log files
+            for log_file in log_files:
+                with open(os.path.join(log_folder, log_file), "r") as f:
+                    print(f.read())
+        else:
+            # print the contents of the log file with index args.idx
+            with open(os.path.join(log_folder, log_files[args.idx]), "r") as f:
+                print(f.read())
+    elif args.subcommand == "extract-file":
+        # load the simulation
+        sim = SimulationStudy.load_folder(args.simpath)
+        # extract the file
+        sim_folder = os.path.join(sim.study_path, sim.study_name)
+        scan_folder = os.path.join(sim_folder, "scan")
+        # get list of all files in a sim finished folder
+        files = os.listdir(os.path.join(scan_folder, sim.finished[0]))
+        # filter files based on regex
+        if args.file is not None:
+            files = [f for f in files if re.match(args.file, f)]
+        else:
+            files = [f for f in files if re.match(r".*\.(h5|pkl)", f)]
+
+        # create target folder
+        os.makedirs(os.path.join(sim_folder, args.target), exist_ok=True)
+
+        # extract files
+        for sim in sim.finished:
+            sim_folder = os.path.join(scan_folder, sim)
+            for f in files:
+                new_filename = f"{sim}_{f}"
+                is_symlink = os.path.islink(os.path.join(sim_folder, f))
+                if is_symlink:
+                    target = os.readlink(os.path.join(sim_folder, f))
+                    os.symlink(target, os.path.join(sim_folder, new_filename))
+                else:
+                    # copy the file
+                    os.system(
+                        f"cp {os.path.join(sim_folder, f)} {os.path.join(sim_folder, new_filename)}"
+                    )
+    elif args.subcommand == "self-update":
+        # get the directory of this python script
+        this_directory = os.path.dirname(os.path.realpath(__file__))
+        # attempt a git pull
+        print("Attempting to update simanager...")
+        subprocess.run(
+            ["git", "pull"],
+            cwd=this_directory,
+            check=True,
+        )
 
 
 if __name__ == "__main__":

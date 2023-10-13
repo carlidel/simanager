@@ -296,6 +296,48 @@ class SimulationStudy:
         with open(parameter_file, "w", encoding="utf-8") as f:
             yaml.dump(parameters, f)
 
+    def _update_remote_status(self):
+        simulation_info_file = os.path.join(
+            self.study_path, self.study_name, "simulation_info.yaml"
+        )
+        with open(simulation_info_file, "r", encoding="utf-8") as f:
+            simulation_info = yaml.safe_load(f)
+
+        sim_to_check = (
+            simulation_info["sim_not_started"] + simulation_info["sim_running"]
+        )
+        for sim in sim_to_check:
+            folder_path = os.path.join(self.study_path, self.study_name, "scan", sim)
+            if os.path.exists(os.path.join(folder_path, "remote_finished")):
+                try:
+                    simulation_info["sim_running"].remove(sim)
+                    print(f"Removed {sim} from sim_running")
+                except ValueError:
+                    pass
+                try:
+                    simulation_info["sim_not_started"].remove(sim)
+                    print(f"Removed {sim} from sim_not_started")
+                except ValueError:
+                    pass
+                try:
+                    simulation_info["sim_error"].remove(sim)
+                    print(f"Removed {sim} from sim_error")
+                except ValueError:
+                    pass
+                try:
+                    simulation_info["sim_interrupted"].remove(sim)
+                    print(f"Removed {sim} from sim_interrupted")
+                except ValueError:
+                    pass
+                try:
+                    simulation_info["sim_finished"].remove(sim)
+                    print(f"{sim} has indeed finished")
+                except ValueError:
+                    pass
+                simulation_info["sim_finished"].append(sim)
+                self.set_sim_status(sim, "finished")
+                print(f"Simulation {sim} finished remotely.")
+
     def print_sim_status(self, update_remote_status=True):
         """Prints the simulation status. If update_remote_status is True, also
         checks if the simulations running remotely are finished by checking the
@@ -318,42 +360,7 @@ class SimulationStudy:
             simulation_info = yaml.safe_load(f)
 
         if update_remote_status:
-            sim_to_check = (
-                simulation_info["sim_not_started"] + simulation_info["sim_running"]
-            )
-            for sim in sim_to_check:
-                folder_path = os.path.join(
-                    self.study_path, self.study_name, "scan", sim
-                )
-                if os.path.exists(os.path.join(folder_path, "remote_finished")):
-                    try:
-                        simulation_info["sim_running"].remove(sim)
-                        print(f"Removed {sim} from sim_running")
-                    except ValueError:
-                        pass
-                    try:
-                        simulation_info["sim_not_started"].remove(sim)
-                        print(f"Removed {sim} from sim_not_started")
-                    except ValueError:
-                        pass
-                    try:
-                        simulation_info["sim_error"].remove(sim)
-                        print(f"Removed {sim} from sim_error")
-                    except ValueError:
-                        pass
-                    try:
-                        simulation_info["sim_interrupted"].remove(sim)
-                        print(f"Removed {sim} from sim_interrupted")
-                    except ValueError:
-                        pass
-                    try:
-                        simulation_info["sim_finished"].remove(sim)
-                        print(f"{sim} has indeed finished")
-                    except ValueError:
-                        pass
-                    simulation_info["sim_finished"].append(sim)
-                    self.set_sim_status(sim, "finished")
-                    print(f"Simulation {sim} finished remotely.")
+            self._update_remote_status()
 
         print("------------------------------------------------------------")
         print("Simulation status:")
@@ -524,3 +531,58 @@ class SimulationStudy:
         shutil.rmtree(main_folder)
         print("NUKING COMPLETE!")
         print("DO YOU FEEL LIKE OPPENHEIMER YET?")
+
+    @property
+    def finished(self):
+        """Returns a list of the simulations that are finished."""
+        simulation_info_file = os.path.join(
+            self.study_path, self.study_name, "simulation_info.yaml"
+        )
+        with open(simulation_info_file, "r", encoding="utf-8") as f:
+            simulation_info = yaml.safe_load(f)
+
+        return simulation_info["sim_finished"]
+
+    @property
+    def not_started(self):
+        """Returns a list of the simulations that are not started."""
+        simulation_info_file = os.path.join(
+            self.study_path, self.study_name, "simulation_info.yaml"
+        )
+        with open(simulation_info_file, "r", encoding="utf-8") as f:
+            simulation_info = yaml.safe_load(f)
+
+        return simulation_info["sim_not_started"]
+
+    @property
+    def running(self):
+        """Returns a list of the simulations that are running."""
+        simulation_info_file = os.path.join(
+            self.study_path, self.study_name, "simulation_info.yaml"
+        )
+        with open(simulation_info_file, "r", encoding="utf-8") as f:
+            simulation_info = yaml.safe_load(f)
+
+        return simulation_info["sim_running"]
+
+    @property
+    def interrupted(self):
+        """Returns a list of the simulations that are interrupted."""
+        simulation_info_file = os.path.join(
+            self.study_path, self.study_name, "simulation_info.yaml"
+        )
+        with open(simulation_info_file, "r", encoding="utf-8") as f:
+            simulation_info = yaml.safe_load(f)
+
+        return simulation_info["sim_interrupted"]
+
+    @property
+    def error(self):
+        """Returns a list of the simulations that have error."""
+        simulation_info_file = os.path.join(
+            self.study_path, self.study_name, "simulation_info.yaml"
+        )
+        with open(simulation_info_file, "r", encoding="utf-8") as f:
+            simulation_info = yaml.safe_load(f)
+
+        return simulation_info["sim_error"]
