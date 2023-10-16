@@ -74,7 +74,13 @@ def numpy_scalar_representer(dumper, data):
 
 def clean_script_from_templates(data):
     # remove everything above the tag "#___END_INITIAL_INSTRUCTIONS___"
-    data = data.split("#___END_INITIAL_INSTRUCTIONS___")[1]
+    try:
+        data = data.split("#___END_INITIAL_INSTRUCTIONS___")[1]
+    except IndexError:
+        pass
     # remove everything below the tag "#___BEGIN_FINAL_INSTRUCTIONS___"
-    data = data.split("#___BEGIN_FINAL_INSTRUCTIONS___")[0]
+    try:
+        data = data.split("#___BEGIN_FINAL_INSTRUCTIONS___")[0]
+    except IndexError:
+        pass
     return data
