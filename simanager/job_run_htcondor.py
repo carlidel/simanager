@@ -93,10 +93,10 @@ transfer_output_files = ""
 
 request_cpus = __REPLACE_WITH_REQUEST_CPUS__
 
-+JobFlavour = "__REPLACE_WITH_TIME_LIMIT__"
+MY.JobFlavour = "__REPLACE_WITH_TIME_LIMIT__"
 
-+AccountingGroup = "group_u_BE.ABP.normal"
-+WantOS = "el9"
+MY.AccountingGroup = "group_u_BE.ABP.normal"
+MY.WantOS = "el9"
 
 queue Executable,Simpath,Outpath,Errpath from __REPLACE_WITH_QUEUE_FILE__
 """
@@ -118,10 +118,10 @@ requirements = (regexp("(V100|A100)", Target.CUDADeviceName)
 request_GPUs = __REPLACE_WITH_REQUEST_GPUS__
 request_cpus = __REPLACE_WITH_REQUEST_CPUS__
 
-+JobFlavour = "__REPLACE_WITH_TIME_LIMIT__"
+MY.JobFlavour = "__REPLACE_WITH_TIME_LIMIT__"
 
-+AccountingGroup = "group_u_BE.ABP.normal"
-+WantOS = "el9"
+MY.AccountingGroup = "group_u_BE.ABP.normal"
+MY.WantOS = "el9"
 
 queue Executable,Simpath,Outpath,Errpath from __REPLACE_WITH_QUEUE_FILE__
 """
