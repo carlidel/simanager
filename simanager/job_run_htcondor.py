@@ -50,46 +50,44 @@ load_alma_linux9_non_cuda_release() {
     source /cvmfs/sft.cern.ch/lcg/views/LCG_104a/x86_64-el9-gcc11-opt/setup.sh
 }
 
-if [ "$SSH_TTY" ]; then
-    # Check for the presence of an NVIDIA GPU
-    if lspci | grep -i "NVIDIA Corporation" &> /dev/null; then
-        echo "NVIDIA GPU detected."
-        # If NVIDIA GPU is present, load the CUDA-flavored CVMFS release
-        if [[ -f /etc/os-release ]]; then
-            source /etc/os-release
-            if [[ "$VERSION_ID" =~ ^7 ]]; then
-                load_centos7_cuda_release
-            elif [[ "$VERSION_ID" =~ ^8 ]]; then
-                load_centos8_cuda_release
-            elif [[ "$VERSION_ID" =~ ^9 ]]; then
-                load_alma_linux9_cuda_release
-            else
-                echo "Unsupported OS: $ID $VERSION_ID"
-                exit 1
-            fi
+# Check for the presence of an NVIDIA GPU
+if lspci | grep -i "NVIDIA Corporation" &> /dev/null; then
+    echo "NVIDIA GPU detected."
+    # If NVIDIA GPU is present, load the CUDA-flavored CVMFS release
+    if [[ -f /etc/os-release ]]; then
+        source /etc/os-release
+        if [[ "$VERSION_ID" =~ ^7 ]]; then
+            load_centos7_cuda_release
+        elif [[ "$VERSION_ID" =~ ^8 ]]; then
+            load_centos8_cuda_release
+        elif [[ "$VERSION_ID" =~ ^9 ]]; then
+            load_alma_linux9_cuda_release
         else
-            echo "Unable to detect the operating system."
+            echo "Unsupported OS: $ID $VERSION_ID"
             exit 1
         fi
     else
-        echo "No NVIDIA GPU detected."
-        # If no NVIDIA GPU is detected, load the non-CUDA CVMFS release
-        if [[ -f /etc/os-release ]]; then
-            source /etc/os-release
-            if [[ "$VERSION_ID" =~ ^7 ]]; then
-                load_centos7_non_cuda_release
-            elif [[ "$VERSION_ID" =~ ^8 ]]; then
-                load_centos8_non_cuda_release
-            elif [[ "$VERSION_ID" =~ ^9 ]]; then
-                load_alma_linux9_non_cuda_release
-            else
-                echo "Unsupported OS: $ID $VERSION_ID"
-                exit 1
-            fi
+        echo "Unable to detect the operating system."
+        exit 1
+    fi
+else
+    echo "No NVIDIA GPU detected."
+    # If no NVIDIA GPU is detected, load the non-CUDA CVMFS release
+    if [[ -f /etc/os-release ]]; then
+        source /etc/os-release
+        if [[ "$VERSION_ID" =~ ^7 ]]; then
+            load_centos7_non_cuda_release
+        elif [[ "$VERSION_ID" =~ ^8 ]]; then
+            load_centos8_non_cuda_release
+        elif [[ "$VERSION_ID" =~ ^9 ]]; then
+            load_alma_linux9_non_cuda_release
         else
-            echo "Unable to detect the operating system."
+            echo "Unsupported OS: $ID $VERSION_ID"
             exit 1
         fi
+    else
+        echo "Unable to detect the operating system."
+        exit 1
     fi
 fi
 
