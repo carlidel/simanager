@@ -5,13 +5,94 @@ from datetime import datetime
 import yaml
 
 from .simulation_study import SimulationStudy
+from .tools import clean_script_from_templates
 
 INITIAL_INSTRUCTIONS_HTCONDOR_DEFAULT = """#!/bin/bash
 # initial instructions
 
 export EOS_MGM_URL=root://eosuser.cern.ch
 
-source __REPLACE_WITH_CVMFS_PATH__
+# Loading the correct CVMFS release for the OS and GPU configuration
+
+# Function to load CUDA-flavored CVMFS release for CentOS 7
+load_centos7_cuda_release() {
+    echo "Loading CUDA-flavored CVMFS release for CentOS 7..."
+    source /cvmfs/sft.cern.ch/lcg/views/LCG_104a_cuda/x86_64-centos7-gcc11-opt/setup.sh
+}
+
+# Function to load CUDA-flavored CVMFS release for CentOS 8
+load_centos8_cuda_release() {
+    echo "Loading CUDA-flavored CVMFS release for CentOS 8..."
+    source /cvmfs/sft.cern.ch/lcg/views/LCG_104a_cuda/x86_64-centos8-gcc11-opt/setup.sh
+}
+
+# Function to load CUDA-flavored CVMFS release for Alma Linux 9
+load_alma_linux9_cuda_release() {
+    echo "Loading CUDA-flavored CVMFS release for Alma Linux 9..."
+    source /cvmfs/sft.cern.ch/lcg/views/LCG_104a_cuda/x86_64-el9-gcc11-opt/setup.sh
+}
+
+# Function to load non-CUDA CVMFS release for CentOS 7
+load_centos7_non_cuda_release() {
+    echo "Loading non-CUDA CVMFS release for CentOS 7..."
+    source /cvmfs/sft.cern.ch/lcg/views/LCG_104a/x86_64-centos7-gcc11-opt/setup.sh
+}
+
+# Function to load non-CUDA CVMFS release for CentOS 8
+load_centos8_non_cuda_release() {
+    echo "Loading non-CUDA CVMFS release for CentOS 8..."
+    source /cvmfs/sft.cern.ch/lcg/views/LCG_104a/x86_64-centos8-gcc11-opt/setup.sh
+}
+
+# Function to load non-CUDA CVMFS release for Alma Linux 9
+load_alma_linux9_non_cuda_release() {
+    echo "Loading non-CUDA CVMFS release for Alma Linux 9..."
+    source /cvmfs/sft.cern.ch/lcg/views/LCG_104a/x86_64-el9-gcc11-opt/setup.sh
+}
+
+if [ "$SSH_TTY" ]; then
+    # Check for the presence of an NVIDIA GPU
+    if lspci | grep -i "NVIDIA Corporation" &> /dev/null; then
+        echo "NVIDIA GPU detected."
+        # If NVIDIA GPU is present, load the CUDA-flavored CVMFS release
+        if [[ -f /etc/os-release ]]; then
+            source /etc/os-release
+            if [[ "$VERSION_ID" =~ ^7 ]]; then
+                load_centos7_cuda_release
+            elif [[ "$VERSION_ID" =~ ^8 ]]; then
+                load_centos8_cuda_release
+            elif [[ "$VERSION_ID" =~ ^9 ]]; then
+                load_alma_linux9_cuda_release
+            else
+                echo "Unsupported OS: $ID $VERSION_ID"
+                exit 1
+            fi
+        else
+            echo "Unable to detect the operating system."
+            exit 1
+        fi
+    else
+        echo "No NVIDIA GPU detected."
+        # If no NVIDIA GPU is detected, load the non-CUDA CVMFS release
+        if [[ -f /etc/os-release ]]; then
+            source /etc/os-release
+            if [[ "$VERSION_ID" =~ ^7 ]]; then
+                load_centos7_non_cuda_release
+            elif [[ "$VERSION_ID" =~ ^8 ]]; then
+                load_centos8_non_cuda_release
+            elif [[ "$VERSION_ID" =~ ^9 ]]; then
+                load_alma_linux9_non_cuda_release
+            else
+                echo "Unsupported OS: $ID $VERSION_ID"
+                exit 1
+            fi
+        else
+            echo "Unable to detect the operating system."
+            exit 1
+        fi
+    fi
+fi
+
 source __REPLACE_WITH_VENV_PATH__
 
 # echo the sourced environments
@@ -96,7 +177,7 @@ request_cpus = __REPLACE_WITH_REQUEST_CPUS__
 MY.JobFlavour = "__REPLACE_WITH_TIME_LIMIT__"
 
 MY.AccountingGroup = "group_u_BE.ABP.normal"
-MY.WantOS = "el9"
+#MY.WantOS = "el9"
 
 queue Executable,Simpath,Outpath,Errpath from __REPLACE_WITH_QUEUE_FILE__
 """
@@ -121,7 +202,7 @@ request_cpus = __REPLACE_WITH_REQUEST_CPUS__
 MY.JobFlavour = "__REPLACE_WITH_TIME_LIMIT__"
 
 MY.AccountingGroup = "group_u_BE.ABP.normal"
-MY.WantOS = "el9"
+#MY.WantOS = "el9"
 
 queue Executable,Simpath,Outpath,Errpath from __REPLACE_WITH_QUEUE_FILE__
 """
@@ -278,6 +359,8 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
 
         with open(main_file, "r", encoding="utf-8") as f:
             main_file_content = f.read()
+
+        main_file_content = clean_script_from_templates(main_file_content)
 
         main_file_content = (
             initial_instructions + "\n" + main_file_content + "\n" + final_instructions

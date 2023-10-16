@@ -70,3 +70,11 @@ def float_representer(dumper, data):
 # Define a custom representer for NumPy numerical types
 def numpy_scalar_representer(dumper, data):
     return dumper.represent_scalar("tag:yaml.org,2002:float", format(float(data)))
+
+
+def clean_script_from_templates(data):
+    # remove everything above the tag "#___END_INITIAL_INSTRUCTIONS___"
+    data = data.split("#___END_INITIAL_INSTRUCTIONS___")[1]
+    # remove everything below the tag "#___BEGIN_FINAL_INSTRUCTIONS___"
+    data = data.split("#___BEGIN_FINAL_INSTRUCTIONS___")[0]
+    return data

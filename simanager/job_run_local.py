@@ -6,6 +6,7 @@ from multiprocessing import Manager, Pool
 import yaml
 
 from .simulation_study import SimulationStudy
+from .tools import clean_script_from_templates
 
 INITIAL_INSTRUCTIONS_LOCAL_DEFAULT = """
 #!/bin/bash
@@ -217,6 +218,9 @@ def job_run_local(simulation_study: SimulationStudy, **kwargs):
 
         with open(main_file, "r", encoding="utf-8") as f:
             main_file_content = f.read()
+
+        # clean the main file from the templates
+        main_file_content = clean_script_from_templates(main_file_content)
 
         main_file_content = (
             initial_instructions + "\n" + main_file_content + "\n" + final_instructions

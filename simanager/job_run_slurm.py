@@ -6,6 +6,7 @@ from datetime import datetime
 import yaml
 
 from .simulation_study import SimulationStudy
+from .tools import clean_script_from_templates
 
 INSTRUCTIONS_SLURM_DEFAULT = """#!/bin/bash
 
