@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import os
 
 import numpy as np
 import yaml
@@ -56,6 +57,8 @@ class ParameterInspection:
         - 'float': Force the parameter to be a float.
         - 'bool': Force the parameter to be a boolean.
         - 'str': Force the parameter to be a string.
+        - 'path': The parameter is a path. The path is expanded if it has some
+            environment variables in it.
 
         If None, the type of the parameter is not forced. By default None.
     """
@@ -136,5 +139,9 @@ class ParameterInspection:
             return bool(value)
         elif self.force_type == "str":
             return str(value)
+        elif self.force_type == "path":
+            value = str(value)
+            if value.startswith("$"):
+                value = os.path.expandvars(value)
         else:
             return default(value)

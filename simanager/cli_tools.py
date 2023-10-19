@@ -26,7 +26,7 @@ def generate_parser():
         "copy-template", help="Copy the template simulation in the current directory"
     )
     template_parser.add_argument(
-        "--name", help="Name of the simulation folder", default="sim_scan"
+        "-n", "--name", help="Name of the simulation folder", default="sim_scan"
     )
 
     # Subcommand: create
@@ -38,7 +38,7 @@ def generate_parser():
     # Subcommand: run-local
     run_local_parser = subparsers.add_parser("run-local", help="Run simulation locally")
     run_local_parser.add_argument(
-        "config",
+        "-c", "--config",
         help="Configuration file",
         default="run_config.yaml",
     )
@@ -50,7 +50,7 @@ def generate_parser():
         "run-htcondor", help="Run simulation on HTCondor"
     )
     run_htcondor_parser.add_argument(
-        "config",
+        "-c", "--config",
         help="Configuration file",
         default="run_config.yaml",
     )
@@ -62,7 +62,7 @@ def generate_parser():
         "run-slurm", help="Run simulation on SLURM"
     )
     run_slurm_parser.add_argument(
-        "config",
+        "-c", "--config",
         help="Configuration file",
         default="run_config.yaml",
     )
@@ -75,22 +75,22 @@ def generate_parser():
         "--reset-all", help="Reset all simulations", action="store_true"
     )
     reset_parser.add_argument(
-        "--restore-original",
+        "-r", "--restore-original",
         help="Restore original files",
         action="store_true",
     )
     reset_parser.add_argument(
-        "--clear-out-folder",
+        "-o", "--clear-out-folder",
         help="Clear out folder",
         action="store_true",
     )
     reset_parser.add_argument(
-        "--clear-err-folder",
+        "-e", "--clear-err-folder",
         help="Clear err folder",
         action="store_true",
     )
     reset_parser.add_argument(
-        "--clear-log-folder",
+        "-l", "--clear-log-folder",
         help="Clear log folder",
         action="store_true",
     )
@@ -172,6 +172,11 @@ def confirm_execution(timeout):
 def main():
     parser = generate_parser()
     args = parser.parse_args()
+
+    # If no subcommand is specified, print help and exit
+    if args.subcommand is None:
+        parser.print_help()
+        return
 
     # Handle subcommands and their respective arguments/options here
     if args.subcommand == "create":

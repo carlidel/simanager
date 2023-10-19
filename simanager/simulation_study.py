@@ -27,7 +27,9 @@ class SimulationStudy:
         The name of the study.
     study_path : str, optional
         The path to the study folder. If it is set at "./", the study folder
-        will be created in the current working directory.
+        will be created in the current working directory. Note that this value 
+        can be retrieved by using the environment variable $STUDYPATH. Use it
+        to make the parameter file more portable!
     original_folder : str
         The path to the folder containing the original files to clone.
     main_file : str
@@ -37,6 +39,10 @@ class SimulationStudy:
     parameters_inspected : list, optional
         The list of parameters to inspect. The default is None. Must be a list of
         ParameterInspection objects.
+    environ_dict : dict, optional
+        Dictionary containing the environment variables to set. The default is
+        an empty dictionary. Use it to set "universal" environment variables
+        that can help you manage the simulations on different machines.
     """
 
     study_name: str
@@ -45,11 +51,16 @@ class SimulationStudy:
     main_file: str
     config_file: str
     parameters_inspected: list[ParameterInspection]
+    environ_dict: dict = field(default_factory=dict)
     folders_created: bool = False
 
     def __post_init__(self):
         if self.study_path == "./":
             self.study_path = os.getcwd()
+
+        # set $STUDYPATH environment variable to the study path
+        os.environ["STUDYPATH"] = self.study_path
+        
         self.original_folder = os.path.abspath(self.original_folder)
         # construct from the list of parameters inspected the list of parameters
         # using the dataclass ParameterInspection
@@ -59,6 +70,11 @@ class SimulationStudy:
             self.parameters_inspected = [
                 ParameterInspection.from_dict(p) for p in self.parameters_inspected
             ]
+
+        # if environ_dict is not empty, set the environment variables
+        if self.environ_dict:
+            for k, v in self.environ_dict.items():
+                os.environ[k] = v
 
         # Register the custom representers for numerical types
         yaml.add_representer(int, int_representer)
