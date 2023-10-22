@@ -38,11 +38,15 @@ def generate_parser():
     # Subcommand: run-local
     run_local_parser = subparsers.add_parser("run-local", help="Run simulation locally")
     run_local_parser.add_argument(
-        "-c", "--config",
+        "-c",
+        "--config",
         help="Configuration file",
         default="run_config.yaml",
     )
     run_local_parser.add_argument("--simpath", help="Simulation path", default="./")
+    run_local_parser.add_argument(
+        "-t", "--run-test", help="Run the test simulation", action="store_true"
+    )
 
     # Subcommand: run-htcondor
     # Add similar configuration for 'run-htcondor'
@@ -50,11 +54,15 @@ def generate_parser():
         "run-htcondor", help="Run simulation on HTCondor"
     )
     run_htcondor_parser.add_argument(
-        "-c", "--config",
+        "-c",
+        "--config",
         help="Configuration file",
         default="run_config.yaml",
     )
     run_htcondor_parser.add_argument("--simpath", help="Simulation path", default="./")
+    run_htcondor_parser.add_argument(
+        "-t", "--run-test", help="Run the test simulation", action="store_true"
+    )
 
     # Subcommand: run-slurm
     # Add similar configuration for 'run-slurm'
@@ -62,11 +70,15 @@ def generate_parser():
         "run-slurm", help="Run simulation on SLURM"
     )
     run_slurm_parser.add_argument(
-        "-c", "--config",
+        "-c",
+        "--config",
         help="Configuration file",
         default="run_config.yaml",
     )
     run_slurm_parser.add_argument("--simpath", help="Simulation path", default="./")
+    run_slurm_parser.add_argument(
+        "-t", "--run-test", help="Run the test simulation", action="store_true"
+    )
 
     # Subcommand: reset
     reset_parser = subparsers.add_parser("reset", help="Reset simulation")
@@ -75,22 +87,26 @@ def generate_parser():
         "--reset-all", help="Reset all simulations", action="store_true"
     )
     reset_parser.add_argument(
-        "-r", "--restore-original",
+        "-r",
+        "--restore-original",
         help="Restore original files",
         action="store_true",
     )
     reset_parser.add_argument(
-        "-o", "--clear-out-folder",
+        "-o",
+        "--clear-out-folder",
         help="Clear out folder",
         action="store_true",
     )
     reset_parser.add_argument(
-        "-e", "--clear-err-folder",
+        "-e",
+        "--clear-err-folder",
         help="Clear err folder",
         action="store_true",
     )
     reset_parser.add_argument(
-        "-l", "--clear-log-folder",
+        "-l",
+        "--clear-log-folder",
         help="Clear log folder",
         action="store_true",
     )
@@ -200,6 +216,7 @@ def main():
             config = config["run_local"]
             if config is None:
                 config = {}
+        config["run_test"] = args.run_test
         # run the simulation, pass the config dict as kwargs
         job_run_local(sim, **config)
         sim.print_sim_status()
@@ -213,6 +230,7 @@ def main():
             config = config["run_htcondor"]
             if config is None:
                 config = {}
+        config["run_test"] = args.run_test
         # run the simulation, pass the config dict as kwargs
         job_run_htcondor(sim, **config)
         sim.print_sim_status()
@@ -226,6 +244,7 @@ def main():
             config = config["run_slurm"]
             if config is None:
                 config = {}
+        config["run_test"] = args.run_test
         # run the simulation, pass the config dict as kwargs
         job_run_slurm(sim, **config)
         sim.print_sim_status()
@@ -277,11 +296,15 @@ def main():
         if args.idx == -1:
             # print the contents of all err files
             for err_file in err_files:
-                with open(os.path.join(err_folder, err_file), "r") as f:
+                with open(
+                    os.path.join(err_folder, err_file), "r", encoding="utf-8"
+                ) as f:
                     print(f.read())
         else:
             # print the contents of the err file with index args.idx
-            with open(os.path.join(err_folder, err_files[args.idx]), "r") as f:
+            with open(
+                os.path.join(err_folder, err_files[args.idx]), "r", encoding="utf-8"
+            ) as f:
                 print(f.read())
     elif args.subcommand == "cat-out":
         # load the simulation
@@ -293,11 +316,15 @@ def main():
         if args.idx == -1:
             # print the contents of all out files
             for out_file in out_files:
-                with open(os.path.join(out_folder, out_file), "r") as f:
+                with open(
+                    os.path.join(out_folder, out_file), "r", encoding="utf-8"
+                ) as f:
                     print(f.read())
         else:
             # print the contents of the out file with index args.idx
-            with open(os.path.join(out_folder, out_files[args.idx]), "r") as f:
+            with open(
+                os.path.join(out_folder, out_files[args.idx]), "r", encoding="utf-8"
+            ) as f:
                 print(f.read())
     elif args.subcommand == "cat-log":
         # load the simulation
@@ -309,11 +336,15 @@ def main():
         if args.idx == -1:
             # print the contents of all log files
             for log_file in log_files:
-                with open(os.path.join(log_folder, log_file), "r") as f:
+                with open(
+                    os.path.join(log_folder, log_file), "r", encoding="utf-8"
+                ) as f:
                     print(f.read())
         else:
             # print the contents of the log file with index args.idx
-            with open(os.path.join(log_folder, log_files[args.idx]), "r") as f:
+            with open(
+                os.path.join(log_folder, log_files[args.idx]), "r", encoding="utf-8"
+            ) as f:
                 print(f.read())
     elif args.subcommand == "extract-file":
         # load the simulation

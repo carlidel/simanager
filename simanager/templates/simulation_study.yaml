@@ -25,3 +25,7 @@ parameters_inspected:
     inspection_method: "custom"
     values: [[1, 2, 3], [4, 5, 6]]
     parameter_file_name: "nlist"
+
+test_case:
+  numeric/num_turns: 100
+  numeric/num_particles: 100 

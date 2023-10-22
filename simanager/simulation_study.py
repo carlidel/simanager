@@ -27,7 +27,7 @@ class SimulationStudy:
         The name of the study.
     study_path : str, optional
         The path to the study folder. If it is set at "./", the study folder
-        will be created in the current working directory. Note that this value 
+        will be created in the current working directory. Note that this value
         can be retrieved by using the environment variable $STUDYPATH. Use it
         to make the parameter file more portable!
     original_folder : str
@@ -43,6 +43,11 @@ class SimulationStudy:
         Dictionary containing the environment variables to set. The default is
         an empty dictionary. Use it to set "universal" environment variables
         that can help you manage the simulations on different machines.
+    test_case : dict, optional
+        Dictionary containing the parameters for a quick simulation case to be
+        run for a quick test run, in order to check the correct behaviour of the
+        master study. By default, a test with the first combination of
+        parameters is generated.
     """
 
     study_name: str
@@ -52,6 +57,7 @@ class SimulationStudy:
     config_file: str
     parameters_inspected: list[ParameterInspection]
     environ_dict: dict = field(default_factory=dict)
+    test_case: dict = field(default_factory=dict)
     folders_created: bool = False
 
     def __post_init__(self):
@@ -60,7 +66,7 @@ class SimulationStudy:
 
         # set $STUDYPATH environment variable to the study path
         os.environ["STUDYPATH"] = self.study_path
-        
+
         self.original_folder = os.path.abspath(self.original_folder)
         # construct from the list of parameters inspected the list of parameters
         # using the dataclass ParameterInspection
@@ -225,7 +231,7 @@ class SimulationStudy:
 
         # create a folder for each parameter combination
         simulation_combos = {}
-        for combination in self.yield_parameter_combinations():
+        for i, combination in enumerate(self.yield_parameter_combinations()):
             str_blocks = [
                 c[1] + "_" + float_filename_fomratter(c[2], c[4]) for c in combination
             ]
@@ -252,6 +258,29 @@ class SimulationStudy:
 
             # save the combination info
             simulation_combos[foldername] = combination
+
+            # create the test case folder
+            if i == 0:
+                folder_path = os.path.join("main_folder", "scan", "test")
+                os.makedirs(folder_path, exist_ok=True)
+                clone_folder_content(
+                    os.path.join(main_folder, "original_folder"), folder_path
+                )
+                # open the parameter file and update the parameters
+                parameter_file = os.path.join(folder_path, self.config_file)
+                with open(parameter_file, "r", encoding="utf-8") as f:
+                    parameters = yaml.safe_load(f)
+
+                for c in combination:
+                    update_nested_dict(parameters, c[0], c[2])
+
+                # extra specifications for test case
+                for key, item in self.test_case:
+                    update_nested_dict(parameters, key, item)
+
+                # save the parameter file
+                with open(parameter_file, "w", encoding="utf-8") as f:
+                    yaml.dump(parameters, f)
 
         # save the master parameters file
         simulation_info_file = os.path.join(main_folder, "simulation_info.yaml")
@@ -390,31 +419,41 @@ class SimulationStudy:
             f"Number of simulations interrupted: {len(simulation_info['sim_interrupted'])}"
         )
         print(f"Number of simulations with error: {len(simulation_info['sim_error'])}")
-        print("------------------------------------------------------------")
-        print("Simulations not started:")
-        print("------------------------------------------------------------")
-        for sim in simulation_info["sim_not_started"]:
-            print(sim)
-        print("------------------------------------------------------------")
-        print("Simulations running:")
-        print("------------------------------------------------------------")
-        for sim in simulation_info["sim_running"]:
-            print(sim)
-        print("------------------------------------------------------------")
-        print("Simulations finished:")
-        print("------------------------------------------------------------")
-        for sim in simulation_info["sim_finished"]:
-            print(sim)
-        print("------------------------------------------------------------")
-        print("Simulations interrupted:")
-        print("------------------------------------------------------------")
-        for sim in simulation_info["sim_interrupted"]:
-            print(sim)
-        print("------------------------------------------------------------")
-        print("Simulations with error:")
-        print("------------------------------------------------------------")
-        for sim in simulation_info["sim_error"]:
-            print(sim)
+
+        if len(simulation_info["sim_not_started"] > 0):
+            print("------------------------------------------------------------")
+            print("Simulations not started:")
+            print("------------------------------------------------------------")
+            for sim in simulation_info["sim_not_started"]:
+                print(sim)
+
+        if len(simulation_info["sim_running"] > 0):
+            print("------------------------------------------------------------")
+            print("Simulations running:")
+            print("------------------------------------------------------------")
+            for sim in simulation_info["sim_running"]:
+                print(sim)
+
+        if len(simulation_info["sim_finished"] > 0):
+            print("------------------------------------------------------------")
+            print("Simulations finished:")
+            print("------------------------------------------------------------")
+            for sim in simulation_info["sim_finished"]:
+                print(sim)
+
+        if len(simulation_info["sim_interrupted"] > 0):
+            print("------------------------------------------------------------")
+            print("Simulations interrupted:")
+            print("------------------------------------------------------------")
+            for sim in simulation_info["sim_interrupted"]:
+                print(sim)
+
+        if len(simulation_info["sim_error"] > 0):
+            print("------------------------------------------------------------")
+            print("Simulations with error:")
+            print("------------------------------------------------------------")
+            for sim in simulation_info["sim_error"]:
+                print(sim)
         print("------------------------------------------------------------")
 
     def reset_simulations(

@@ -172,6 +172,8 @@ def job_run_local(simulation_study: SimulationStudy, **kwargs):
         To be used if gpu_available_list is not passed. The number of
         concurrent jobs to run. By default, it is set to the number of CPUs
         available.
+    run_test : bool
+        if True, runs only the test simulation. Default is False.
 
     Raises
     ------
@@ -191,6 +193,7 @@ def job_run_local(simulation_study: SimulationStudy, **kwargs):
 
     gpu_available_list = kwargs.pop("gpu_available_list", [])
     n_concurrent_jobs = kwargs.pop("n_concurrent_jobs", os.cpu_count())
+    run_test = kwargs.pop("run_test", False)
 
     # if unexpected keyword arguments are passed, raise an error
     if kwargs:
@@ -204,7 +207,10 @@ def job_run_local(simulation_study: SimulationStudy, **kwargs):
         simulation_info = yaml.safe_load(f)
 
     # get the list of simulations to run
-    simulations_to_run = simulation_info["sim_not_started"].copy()
+    if run_test:
+        simulations_to_run = ["test"]
+    else:
+        simulations_to_run = simulation_info["sim_not_started"].copy()
     # get the root folder
     root_folder = simulation_info["root_folder"]
 

@@ -107,6 +107,8 @@ def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
         The partition to use. By default, no partition is specified.
     slurm_submit_template : str
         The template for the SLURM submit file.
+    run_test : bool
+        If True, runs the test simulation. By default, false.
 
     Raises
     ------
@@ -133,6 +135,7 @@ def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
     slurm_submit_template = kwargs.pop(
         "slurm_submit_template", SUBMISSION_SLURM_DEFAULT
     )
+    run_test = kwargs.pop("run_test", False)
 
     # if unexpected keyword arguments are passed, raise an error
     if kwargs:
@@ -206,7 +209,10 @@ def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
         simulation_info = yaml.safe_load(f)
 
     # get the list of simulations to run
-    simulations_to_run = simulation_info["sim_not_started"]
+    if run_test:
+        simulations_to_run = ["test"]
+    else:
+        simulations_to_run = simulation_info["sim_not_started"]
     # get the root folder
     root_folder = simulation_info["root_folder"]
 

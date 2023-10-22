@@ -256,6 +256,8 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     bump_schedd : bool
         If True, bumps the schedd before submitting the jobs.
         Default is True.
+    run_test : bool
+        If True, runs only the test case, by default False.
 
     Raises
     ------
@@ -277,6 +279,7 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     request_cpus = kwargs.pop("request_cpus", 1)
     time_limit = kwargs.pop("time_limit", "longlunch")
     bump_schedd = kwargs.pop("bump_schedd", True)
+    run_test = kwargs.pop("run_test", False)
 
     htcondor_submit_str = kwargs.pop(
         "htcondor_submit_template",
@@ -337,7 +340,10 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         simulation_info = yaml.safe_load(f)
 
     # get the list of simulations to run
-    simulations_to_run = simulation_info["sim_not_started"]
+    if run_test:
+        simulations_to_run = ["test"]
+    else:
+        simulations_to_run = simulation_info["sim_not_started"]
     # get the root folder
     root_folder = simulation_info["root_folder"]
 
