@@ -261,7 +261,7 @@ class SimulationStudy:
 
             # create the test case folder
             if i == 0:
-                folder_path = os.path.join("main_folder", "scan", "test")
+                folder_path = os.path.join(main_folder, "scan", "test")
                 os.makedirs(folder_path, exist_ok=True)
                 clone_folder_content(
                     os.path.join(main_folder, "original_folder"), folder_path
@@ -281,6 +281,8 @@ class SimulationStudy:
                 # save the parameter file
                 with open(parameter_file, "w", encoding="utf-8") as f:
                     yaml.dump(parameters, f)
+                
+                print("Test case folder created at: ", folder_path)
 
         # save the master parameters file
         simulation_info_file = os.path.join(main_folder, "simulation_info.yaml")
@@ -420,35 +422,35 @@ class SimulationStudy:
         )
         print(f"Number of simulations with error: {len(simulation_info['sim_error'])}")
 
-        if len(simulation_info["sim_not_started"] > 0):
+        if len(simulation_info["sim_not_started"]) > 0:
             print("------------------------------------------------------------")
             print("Simulations not started:")
             print("------------------------------------------------------------")
             for sim in simulation_info["sim_not_started"]:
                 print(sim)
 
-        if len(simulation_info["sim_running"] > 0):
+        if len(simulation_info["sim_running"]) > 0:
             print("------------------------------------------------------------")
             print("Simulations running:")
             print("------------------------------------------------------------")
             for sim in simulation_info["sim_running"]:
                 print(sim)
 
-        if len(simulation_info["sim_finished"] > 0):
+        if len(simulation_info["sim_finished"]) > 0:
             print("------------------------------------------------------------")
             print("Simulations finished:")
             print("------------------------------------------------------------")
             for sim in simulation_info["sim_finished"]:
                 print(sim)
 
-        if len(simulation_info["sim_interrupted"] > 0):
+        if len(simulation_info["sim_interrupted"]) > 0:
             print("------------------------------------------------------------")
             print("Simulations interrupted:")
             print("------------------------------------------------------------")
             for sim in simulation_info["sim_interrupted"]:
                 print(sim)
 
-        if len(simulation_info["sim_error"] > 0):
+        if len(simulation_info["sim_error"]) > 0:
             print("------------------------------------------------------------")
             print("Simulations with error:")
             print("------------------------------------------------------------")

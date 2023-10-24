@@ -205,7 +205,7 @@ def main():
     elif args.subcommand == "copy-template":
         print("Copying template simulation.")
         # Copy the template simulation
-        copy_template(args.name)
+        copy_template(folder_name=args.name)
     elif args.subcommand == "run-local":
         # load the simulation
         sim = SimulationStudy.load_folder(args.simpath)

@@ -1,7 +1,7 @@
 # simulation parameters
 study_name: "name_of_the_study"
 study_path: "./"
-original_folder: "/path/to/original/folder"
+original_folder: "./master_study"
 main_file: "main_script.sh"
 config_file: "params.yaml"
 # The following parameters are used to generate the study
@@ -26,6 +26,6 @@ parameters_inspected:
     values: [[1, 2, 3], [4, 5, 6]]
     parameter_file_name: "nlist"
 
-test_case:
-  numeric/num_turns: 100
-  numeric/num_particles: 100 
+# test_case:
+#   numeric/num_turns: 100
+#   numeric/num_particles: 100 

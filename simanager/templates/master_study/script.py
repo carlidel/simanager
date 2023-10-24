@@ -18,3 +18,5 @@ with open(args.yaml_path, "r", encoding="utf-8") as f:
     yaml_dict = yaml.safe_load(f)
 
 ### START CUSTOM CODE ###
+
+print("Hello world!")
