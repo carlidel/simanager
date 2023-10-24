@@ -45,6 +45,7 @@ class ParameterInspection:
 
         - 'meshgrid': Combine the parameter with other parameter scans by means of np.meshgrid.
         - 'individual': Combine the parameter with other parameter scans as if they were combined with a zip function.
+        - 'product': Combine the parameter with other parameter scans by means of itertools.product.
 
     parameter_file_name : str, optional
         Name of the parameter to be used when composing the folder name of the
@@ -59,6 +60,7 @@ class ParameterInspection:
         - 'str': Force the parameter to be a string.
         - 'path': The parameter is a path. The path is expanded if it has some
             environment variables in it.
+        - 'none': Don't force the type of the parameter.
 
         If None, the type of the parameter is not forced. By default None.
     """
@@ -143,5 +145,7 @@ class ParameterInspection:
             value = str(value)
             if value.startswith("$"):
                 value = os.path.expandvars(value)
+        elif self.force_type == "none":
+            return value
         else:
             return default(value)

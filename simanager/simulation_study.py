@@ -1,6 +1,7 @@
 import os
 import pickle
 import shutil
+from itertools import product
 from dataclasses import asdict, dataclass, field
 
 import numpy as np
@@ -160,6 +161,12 @@ class SimulationStudy:
                 vv = np.meshgrid(*values)
                 vv = [v.flatten() for v in vv]
                 joined_combinations.append((names, file_names, vv, len(vv[0]), "multi"))
+            elif combo_method == "product":
+                vv = list(product(*values))
+                id_equiv = list(product(*[range(len(v)) for v in values]))
+                print(vv)
+                print(id_equiv)
+                joined_combinations.append((names, file_names, vv, len(vv), "multi", id_equiv))
 
         combinations = single_combinations + joined_combinations
         return combinations
@@ -190,9 +197,9 @@ class SimulationStudy:
                         (c[0], c[1], c[2][current_idx[j]], c[4], current_idx[j])
                     )
                 elif c[4] == "multi":
-                    for k, v in enumerate(c[2]):
+                    for k, v in enumerate(c[1]):
                         current_combination.append(
-                            (c[0][k], c[1][k], v[current_idx[j]], c[4], current_idx[j])
+                            (c[0][k], c[1][k], c[2][current_idx[j]][k], c[4], c[5][current_idx[j]][k])
                         )
             # update the indices
             current_idx[0] += 1
