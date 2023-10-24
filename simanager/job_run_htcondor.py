@@ -35,7 +35,7 @@ load_alma_linux9_cuda_release() {
 # Function to load non-CUDA CVMFS release for CentOS 7
 load_centos7_non_cuda_release() {
     echo "Loading non-CUDA CVMFS release for CentOS 7..."
-    source /cvmfs/sft.cern.ch/lcg/views/LCG_104b/x86_64-centos7-gcc11-opt/setup.sh
+    source /cvmfs/sft.cern.ch/lcg/views/LCG_104a/x86_64-centos7-gcc12-opt/setup.sh
 }
 
 # Function to load non-CUDA CVMFS release for CentOS 8
@@ -47,7 +47,7 @@ load_centos8_non_cuda_release() {
 # Function to load non-CUDA CVMFS release for Alma Linux 9
 load_alma_linux9_non_cuda_release() {
     echo "Loading non-CUDA CVMFS release for Alma Linux 9..."
-    source /cvmfs/sft.cern.ch/lcg/views/LCG_104b/x86_64-el9-gcc13-opt/setup.sh
+    source /cvmfs/sft.cern.ch/lcg/views/LCG_104a/x86_64-el9-gcc12-opt/setup.sh
 }
 
 # Check for the presence of an NVIDIA GPU
