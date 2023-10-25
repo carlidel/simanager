@@ -1,7 +1,9 @@
 import os
+import shutil
 import subprocess
 from datetime import datetime
 
+import pkg_resources
 import yaml
 
 from .simulation_study import SimulationStudy
@@ -29,11 +31,19 @@ echo $SIMPATH
 # copy all contents of the folder SIMPATH to the current folder
 cp -r $SIMPATH/* .
 
+# execute eos_stage_in.py
+python ___REPLACE_WITH_EOSSTAGEIN__ --yaml_path "___REPLACE_WITH_YAML_NAME___"
+
 #___END_INITIAL_INSTRUCTIONS___
 """
 
 FINAL_INSTRUCTIONS_HTCONDOR_DEFAULT = """
 #___BEGIN_FINAL_INSTRUCTIONS___
+
+# if exists, remove the folder ./input_eos
+if [ -d "./input_eos" ]; then
+    rm -rf ./input_eos
+
 # final instructions
 EOS_DIR=__REPLACE_WITH_EOS_DIR__
 
@@ -230,6 +240,14 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     htcondor_support_folder = os.path.join(sim_folder, "htcondor_support")
     os.makedirs(htcondor_support_folder, exist_ok=True)
 
+    # save the eos_stage_in.py file
+    eos_sif_in = pkg_resources.resource_filename(
+        "simanager", "templates/eos_stage_in/eos_stage_in.py"
+    )
+    # copy the file to the htcondor_support folder
+    eos_sif_in_dest = os.path.join(htcondor_support_folder, "eos_stage_in.py")
+    shutil.copyfile(eos_sif_in, eos_sif_in_dest)
+
     # specializations of the submit file
     htcondor_submit_str = htcondor_submit_str.replace(
         "__REPLACE_WITH_REQUEST_CPUS__", str(request_cpus)
@@ -278,6 +296,13 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     initial_instructions = initial_instructions.replace(
         "__REPLACE_WITH_VENV_PATH__", venv_path
     )
+    initial_instructions = initial_instructions.replace(
+        "___REPLACE_WITH_EOSSTAGEIN__", eos_sif_in_dest
+    )
+    initial_instructions = initial_instructions.replace(
+        "___REPLACE_WITH_YAML_NAME___", simulation_study.config_file
+    )
+
     final_instructions = final_instructions.replace("__REPLACE_WITH_EOS_DIR__", eos_dir)
 
     queue_file_content = ""

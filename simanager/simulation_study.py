@@ -1,8 +1,8 @@
 import os
 import pickle
 import shutil
-from itertools import product
 from dataclasses import asdict, dataclass, field
+from itertools import product
 
 import numpy as np
 import yaml
@@ -62,13 +62,16 @@ class SimulationStudy:
     folders_created: bool = False
 
     def __post_init__(self):
-        if self.study_path == "./":
-            self.study_path = os.getcwd()
+        # if self.study_path == "./":
+        self.study_path = os.path.abspath(self.study_path)
 
         # set $STUDYPATH environment variable to the study path
         os.environ["STUDYPATH"] = self.study_path
 
-        self.original_folder = os.path.abspath(self.original_folder)
+        # self.original_folder = os.path.abspath(self.original_folder)
+        # unpack $STUDYPATH environment variable in the original folder
+        self.original_folder = os.path.abspath(os.path.expandvars(self.original_folder))
+
         # construct from the list of parameters inspected the list of parameters
         # using the dataclass ParameterInspection
         if self.parameters_inspected is None:
@@ -106,6 +109,7 @@ class SimulationStudy:
         simulation_study_file = os.path.join(folder_path, "simulation_study.yaml")
         with open(simulation_study_file, "r", encoding="utf-8") as f:
             simulation_study = yaml.safe_load(f)
+        simulation_study["study_path"] = folder_path
         return cls(**simulation_study)
 
     def build_parameter_combinations(self):
@@ -154,19 +158,35 @@ class SimulationStudy:
                 )
 
             if combo_method == "individual":
+                # check if all values have the same length
+                if not all(len(v) == len(values[0]) for v in values):
+                    raise ValueError(
+                        "All values must have the same length for individual combination."
+                    )
+                vv = list(zip(*values))
+                id_equiv = list(zip(*[range(len(v)) for v in values]))
+
                 joined_combinations.append(
-                    (names, file_names, values, len(values[0]), "multi")
+                    (names, file_names, vv, len(vv), "multi", id_equiv)
                 )
             elif combo_method == "meshgrid":
                 vv = np.meshgrid(*values)
                 vv = [v.flatten() for v in vv]
-                joined_combinations.append((names, file_names, vv, len(vv[0]), "multi"))
+                id_equiv = np.meshgrid(*[range(len(v)) for v in values])
+                id_equiv = [v.flatten() for v in id_equiv]
+                vv = list(zip(*vv))
+                id_equiv = list(zip(*id_equiv))
+                joined_combinations.append(
+                    (names, file_names, vv, len(vv), "multi", id_equiv)
+                )
             elif combo_method == "product":
                 vv = list(product(*values))
                 id_equiv = list(product(*[range(len(v)) for v in values]))
                 print(vv)
                 print(id_equiv)
-                joined_combinations.append((names, file_names, vv, len(vv), "multi", id_equiv))
+                joined_combinations.append(
+                    (names, file_names, vv, len(vv), "multi", id_equiv)
+                )
 
         combinations = single_combinations + joined_combinations
         return combinations
@@ -199,7 +219,13 @@ class SimulationStudy:
                 elif c[4] == "multi":
                     for k, v in enumerate(c[1]):
                         current_combination.append(
-                            (c[0][k], c[1][k], c[2][current_idx[j]][k], c[4], c[5][current_idx[j]][k])
+                            (
+                                c[0][k],
+                                c[1][k],
+                                c[2][current_idx[j]][k],
+                                c[4],
+                                c[5][current_idx[j]][k],
+                            )
                         )
             # update the indices
             current_idx[0] += 1
@@ -288,7 +314,7 @@ class SimulationStudy:
                 # save the parameter file
                 with open(parameter_file, "w", encoding="utf-8") as f:
                     yaml.dump(parameters, f)
-                
+
                 print("Test case folder created at: ", folder_path)
 
         # save the master parameters file

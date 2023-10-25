@@ -14,7 +14,7 @@ def copy_template(destination_dir=".", folder_name="sim_study"):
         The directory to copy the template files to. Defaults to the current
         working directory.
     """
-    templates_dir = pkg_resources.resource_filename("simanager", "templates")
+    templates_dir = pkg_resources.resource_filename("simanager", "templates/study_template")
     destination_dir = os.path.abspath(destination_dir)
 
     os.makedirs(os.path.join(destination_dir, folder_name), exist_ok=True)
