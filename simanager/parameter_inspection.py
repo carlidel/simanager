@@ -128,6 +128,7 @@ class ParameterInspection:
                 raise ValueError(
                     "If inspection_method is custom, values must be specified."
                 )
+            self.values = [self._force_type(v, "none") for v in self.values]
 
         if self.parameter_file_name is None:
             self.parameter_file_name = self.parameter_name
@@ -152,4 +153,6 @@ class ParameterInspection:
         elif self.force_type == "none":
             return value
         else:
+            if default == "none":
+                return value
             return default(value)
