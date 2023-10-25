@@ -60,9 +60,10 @@ class ParameterInspection:
         - 'str': Force the parameter to be a string.
         - 'path': The parameter is a path. The path is expanded if it has some
             environment variables in it.
-        - 'none': Don't force the type of the parameter.
+        - 'none': Don't force the type of the parameter in any situation.
 
-        If None, the type of the parameter is not forced. By default None.
+        If None, the type of the parameter follows an internal default. By default
+         None.
     """
 
     parameter_name: str
