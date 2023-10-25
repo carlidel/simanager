@@ -32,9 +32,9 @@ jobs:
           sed -i 's/\(version=\).*/\1"${{ steps.extract_version.outputs.version }}",/' setup.py
         shell: bash
 
-      - name: Update docs/config.py with new version
+      - name: Update docs/conf.py with new version
         run: |
-          sed -i 's/\(release = \)"[^"]*"/\1"${{ steps.extract_version.outputs.version }}"/' docs/config.py
+          sed -i 's/\(release = \)"[^"]*"/\1"${{ steps.extract_version.outputs.version }}"/' docs/conf.py
         shell: bash
 
       - name: Commit and push changes
