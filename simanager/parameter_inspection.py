@@ -129,6 +129,10 @@ class ParameterInspection:
                     "If inspection_method is custom, values must be specified."
                 )
             self.values = [self._force_type(v, "none") for v in self.values]
+        else:
+            raise ValueError(
+                "inspection_method must be one of the following: range, linspace, logspace, custom."
+            )
 
         if self.parameter_file_name is None:
             self.parameter_file_name = self.parameter_name
