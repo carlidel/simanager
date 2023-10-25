@@ -143,8 +143,11 @@ class ParameterInspection:
             return str(value)
         elif self.force_type == "path":
             value = str(value)
-            if value.startswith("$"):
-                value = os.path.expandvars(value)
+            value = os.path.expandvars(value)
+            if "$" in value:
+                raise ValueError(
+                    f"Path {value} contains environment variables that are not defined."
+                )
             return value
         elif self.force_type == "none":
             return value
