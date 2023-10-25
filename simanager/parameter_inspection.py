@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
 
 import numpy as np
 import yaml
@@ -145,6 +145,7 @@ class ParameterInspection:
             value = str(value)
             if value.startswith("$"):
                 value = os.path.expandvars(value)
+            return value
         elif self.force_type == "none":
             return value
         else:
