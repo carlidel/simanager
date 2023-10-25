@@ -7,11 +7,11 @@ import yaml
 
 def eos_stage_in(eos_path: str, destination: str):
     basename = os.path.basename(eos_path)
-    destination = os.path.join(destination, basename)
+    # destination = os.path.join(destination, basename)
     os.makedirs(destination, exist_ok=True)
     print(f"Copying {eos_path} to {destination}")
     subprocess.run(["eos", "cp", eos_path, destination], check=True)
-    return destination
+    return os.path.join(destination, basename)
 
 
 if __name__ == "__main__":
