@@ -37,10 +37,11 @@ jobs:
           sed -i 's/\(release = \)"[^"]*"/\1"${{ steps.extract_version.outputs.version }}"/' docs/conf.py
         shell: bash
 
-      - name: Commit and push changes
+      - name: Commit on main and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          git checkout main
           git add setup.py docs/conf.py
           git commit -m "Update version to ${{ steps.extract_version.outputs.version }}"
           git push
