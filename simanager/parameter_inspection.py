@@ -89,6 +89,7 @@ class ParameterInspection:
         return cls.from_dict(dictionary)
 
     def __post_init__(self):
+        print(self.inspection_method)
         if self.inspection_method == "range":
             if not (self.min_value is not None and self.max_value is not None):
                 raise ValueError(
@@ -96,7 +97,7 @@ class ParameterInspection:
                 )
             self.values = list(np.arange(self.min_value, self.max_value))
             self.values = [self._force_type(v, int) for v in self.values]
-        if self.inspection_method == "linspace":
+        elif self.inspection_method == "linspace":
             if not (
                 self.min_value is not None
                 and self.max_value is not None
