@@ -89,7 +89,6 @@ class ParameterInspection:
         return cls.from_dict(dictionary)
 
     def __post_init__(self):
-        print(self.inspection_method)
         if self.inspection_method == "range":
             if not (self.min_value is not None and self.max_value is not None):
                 raise ValueError(
