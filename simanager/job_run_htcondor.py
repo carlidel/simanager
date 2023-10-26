@@ -43,7 +43,8 @@ FINAL_INSTRUCTIONS_HTCONDOR_DEFAULT = """
 # if exists, remove the folder ./input_eos
 if [ -d "./input_eos" ]; then
     rm -rf ./input_eos
-
+fi
+    
 # final instructions
 EOS_DIR=__REPLACE_WITH_EOS_DIR__
 
