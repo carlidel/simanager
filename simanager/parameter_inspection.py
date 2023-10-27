@@ -136,7 +136,11 @@ class ParameterInspection:
             )
 
         if self.parameter_file_name is None:
-            self.parameter_file_name = self.parameter_name
+            if len(self.values) == 1:
+                # only one value, no need to have a parameter file name
+                self.parameter_file_name = None
+            else:
+                self.parameter_file_name = self.parameter_name
 
     def _force_type(self, value, default):
         if self.force_type == "int":

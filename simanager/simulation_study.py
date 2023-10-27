@@ -266,7 +266,9 @@ class SimulationStudy:
         simulation_combos = {}
         for i, combination in enumerate(self.yield_parameter_combinations()):
             str_blocks = [
-                c[1] + "_" + float_filename_fomratter(c[2], c[4]) for c in combination
+                c[1] + "_" + float_filename_fomratter(c[2], c[4])
+                for c in combination
+                if c[1] is not None
             ]
             foldername = "case_" + "_".join(str_blocks)
             folder_path = os.path.join(main_folder, "scan", foldername)
