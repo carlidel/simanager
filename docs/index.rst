@@ -8,14 +8,25 @@
 SIMANAGER
 =========
 
+A simple (but flexible) manager for simulations and parameter scan with a CERNy flavour.
+
+A code made not with love, but with hatred. Because when you stare into the abyss of the black background of a terminal window that tells you that your simulation has failed again, you can only hate. And when you use your hate just like a Sith Lord, you can create something powerful.
+
 README.MD
----------
+=========
 
 .. mdinclude:: ../README.md
 
+.. mdinclude:: doc_pages/simulation_study.md
+
+.. mdinclude:: doc_pages/parameter_inspection.md
+
+.. mdinclude:: doc_pages/run_htcondor.md
+
+.. mdinclude:: doc_pages/run_other.md
+
 Docstrings
 ==========
-
 
 parameter_inspection
 ---------------------
@@ -65,9 +76,8 @@ copy_template
    :undoc-members:
    :show-inheritance:
 
-Indices and Tables
-==================
+Indices
+=======
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`

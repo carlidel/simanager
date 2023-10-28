@@ -17,6 +17,20 @@ Currently, it (tries to) support the following execution environments:
 pip install simanager
 ```
 
+but it is in general recommended installing it directly from the GitHub repository in editable mode
+
+```bash
+git clone https://github.com/camontan/simanager
+cd simanager
+pip install -e .
+```
+
+in order to both have the latest version, be able to customize/contribute to the code, and have the ability to use the (despicable) CLI command:
+```bash
+simanager self-update
+```
+which will update the package to the latest version available on GitHub by executing a ```git pull``` in the ```simanager``` folder. (I know that this is not the best way to do it, but it is the simplest one, and it works for now.)
+
 ## Usage
 
 ```simanager``` expects a simulation study to be structured in a precise way. One must first create a master directory, which will contain:
@@ -34,7 +48,6 @@ Example of a ```simulation_study.yaml``` file:
 ```yaml
 # simulation parameters
 study_name: "test_local"
-study_path: "./"
 original_folder: "/home/camontan/cernbox/work/code/generic_study/tests/example_master_study"
 main_file: "main_script.sh"
 config_file: "params.yaml"
