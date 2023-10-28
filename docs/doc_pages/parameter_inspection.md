@@ -17,7 +17,7 @@ The dataclass ```ParameterInspection``` is used to inspect the parameters of a `
         parameter_file_name: # Name to use in the folder name
 ```
 
-Note that some of these keys are optional, while others are mandatory depending on the inspection method used. For a better overview of the different inspection methods, please refer to the docstring of the ```ParameterInspection``` dataclass. Which is also reported at the end of this section for convenience.
+Note that some of these keys are optional, while others are mandatory depending on the inspection method used. For a better overview of the different inspection methods, please refer to the docstring of the ```ParameterInspection``` dataclass.
 
 Let us assume that we have in our master study the following parameter file:
 
