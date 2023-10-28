@@ -1,7 +1,7 @@
-# simanager
+# [simanager](https://github.com/carlidel/simanager)
 ## Description
 
-```simanager``` is a simple manager for your simulations. It is designed to automatically create and manage a directory structure for your simulations, in order to keep your simulations organized and easy to find, and guarantee reproducibility.
+[```simanager```](https://github.com/carlidel/simanager) is a simple manager for your simulations. It is designed to automatically create and manage a directory structure for your simulations, in order to keep your simulations organized and easy to find, and guarantee reproducibility.
 
 Currently, it (tries to) support the following execution environments:
 
@@ -20,7 +20,7 @@ pip install simanager
 but it is in general recommended installing it directly from the GitHub repository in editable mode
 
 ```bash
-git clone https://github.com/camontan/simanager
+git clone https://github.com/carlidel/simanager
 cd simanager
 pip install -e .
 ```
