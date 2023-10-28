@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 import time
+import warnings
 
 import yaml
 
@@ -210,12 +211,18 @@ def main():
         # load the simulation
         sim = SimulationStudy.load_folder(args.simpath)
         # load the config yaml file into a dict
-        with open(args.config, "r", encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-        if "run_local" in config:
-            config = config["run_local"]
-            if config is None:
-                config = {}
+        try:
+            with open(args.config, "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+            if "run_local" in config:
+                config = config["run_local"]
+                if config is None:
+                    config = {}
+        except FileNotFoundError:
+            warnings.warn(
+                f"Config file '{args.config}' not found. Using default config."
+            )
+            config = {}
         config["run_test"] = args.run_test
         # run the simulation, pass the config dict as kwargs
         job_run_local(sim, **config)
@@ -224,12 +231,18 @@ def main():
         # load the simulation
         sim = SimulationStudy.load_folder(args.simpath)
         # load the config yaml file into a dict
-        with open(args.config, "r", encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-        if "run_htcondor" in config:
-            config = config["run_htcondor"]
-            if config is None:
-                config = {}
+        try:
+            with open(args.config, "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+            if "run_htcondor" in config:
+                config = config["run_htcondor"]
+                if config is None:
+                    config = {}
+        except FileNotFoundError:
+            warnings.warn(
+                f"Config file '{args.config}' not found. Using default config."
+            )
+            config = {}
         config["run_test"] = args.run_test
         # run the simulation, pass the config dict as kwargs
         job_run_htcondor(sim, **config)
@@ -238,13 +251,19 @@ def main():
         # load the simulation
         sim = SimulationStudy.load_folder(args.simpath)
         # load the config yaml file into a dict
-        with open(args.config, "r", encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-        if "run_slurm" in config:
-            config = config["run_slurm"]
-            if config is None:
-                config = {}
-        config["run_test"] = args.run_test
+        try:
+            with open(args.config, "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+            if "run_slurm" in config:
+                config = config["run_slurm"]
+                if config is None:
+                    config = {}
+            config["run_test"] = args.run_test
+        except FileNotFoundError:
+            warnings.warn(
+                f"Config file '{args.config}' not found. Using default config."
+            )
+            config = {}
         # run the simulation, pass the config dict as kwargs
         job_run_slurm(sim, **config)
         sim.print_sim_status()
