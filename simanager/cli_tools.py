@@ -315,6 +315,11 @@ def main():
         if args.idx == -1:
             # print the contents of all err files
             for err_file in err_files:
+                lenght_terminal = os.get_terminal_size().columns
+                print("=" * lenght_terminal)
+                print(err_file)
+                print("=" * lenght_terminal)
+                print("")
                 with open(
                     os.path.join(err_folder, err_file), "r", encoding="utf-8"
                 ) as f:
@@ -335,10 +340,16 @@ def main():
         if args.idx == -1:
             # print the contents of all out files
             for out_file in out_files:
+                lenght_terminal = os.get_terminal_size().columns
+                print("=" * lenght_terminal)
+                print(out_file)
+                print("=" * lenght_terminal)
+                print("")
                 with open(
                     os.path.join(out_folder, out_file), "r", encoding="utf-8"
                 ) as f:
                     print(f.read())
+                print("")
         else:
             # print the contents of the out file with index args.idx
             with open(
@@ -355,10 +366,16 @@ def main():
         if args.idx == -1:
             # print the contents of all log files
             for log_file in log_files:
+                lenght_terminal = os.get_terminal_size().columns
+                print("=" * lenght_terminal)
+                print(out_file)
+                print("=" * lenght_terminal)
+                print("")
                 with open(
                     os.path.join(log_folder, log_file), "r", encoding="utf-8"
                 ) as f:
                     print(f.read())
+                print("")
         else:
             # print the contents of the log file with index args.idx
             with open(
