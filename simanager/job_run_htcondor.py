@@ -127,7 +127,7 @@ log        = __REPLACE_WITH_LOG_PATH__
 
 transfer_output_files = ""
 
-requirements = regexp("(V100|A100)", Target.CUDADeviceName)
+requirements = regexp("(V100|A100)", Target.GPUs_DeviceName)
 
 request_GPUs = __REPLACE_WITH_REQUEST_GPUS__
 request_cpus = __REPLACE_WITH_REQUEST_CPUS__
