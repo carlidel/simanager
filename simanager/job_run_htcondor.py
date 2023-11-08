@@ -103,7 +103,7 @@ log        = __REPLACE_WITH_LOG_PATH__
 
 transfer_output_files = ""
 
-# requirements = (OpSysAndVer =?= "CentOS7")
+requirements = regexp("(CentOS7|AlmaLinux9)", OpSysAndVer)
 
 request_cpus = __REPLACE_WITH_REQUEST_CPUS__
 
@@ -127,7 +127,7 @@ log        = __REPLACE_WITH_LOG_PATH__
 
 transfer_output_files = ""
 
-requirements = regexp("(V100|A100)", Target.GPUs_DeviceName)
+requirements = regexp("(V100|A100)", Target.GPUs_DeviceName) && regexp("(CentOS7|AlmaLinux9)", OpSysAndVer)
 
 request_GPUs = __REPLACE_WITH_REQUEST_GPUS__
 request_cpus = __REPLACE_WITH_REQUEST_CPUS__
