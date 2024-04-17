@@ -86,6 +86,63 @@ do
     ln -s $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.pkl $SIMPATH/$(basename $f)
 done
 
+# grab list of *.out files
+out_files=$(ls ./*.out)
+# copy them to EOS
+for f in $out_files
+do
+    echo "Copying $f to EOS"
+    bn="${f##*/}"  # Extract the filename from the path
+    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
+    eos cp ./$(basename $f) $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.out
+done
+# create a symbolic link of the various files in the output folder
+for f in $out_files
+do
+    echo "Creating symbolic link for $f"
+    bn="${f##*/}"  # Extract the filename from the path
+    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
+    ln -s $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.out $SIMPATH/$(basename $f)
+done
+
+# grab list of *.yaml files
+yaml_files=$(ls ./*.yaml)
+# copy them to EOS
+for f in $yaml_files
+do
+    echo "Copying $f to EOS"
+    bn="${f##*/}"  # Extract the filename from the path
+    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
+    eos cp ./$(basename $f) $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.yaml
+done
+# create a symbolic link of the various files in the output folder
+for f in $yaml_files
+do
+    echo "Creating symbolic link for $f"
+    bn="${f##*/}"  # Extract the filename from the path
+    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
+    ln -s $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.yaml $SIMPATH/$(basename $f)
+done
+
+# grab list of *.json files
+json_files=$(ls ./*.json)
+# copy them to EOS
+for f in $json_files
+do
+    echo "Copying $f to EOS"
+    bn="${f##*/}"  # Extract the filename from the path
+    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
+    eos cp ./$(basename $f) $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.json
+done
+# create a symbolic link of the various files in the output folder
+for f in $json_files
+do
+    echo "Creating symbolic link for $f"
+    bn="${f##*/}"  # Extract the filename from the path
+    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
+    ln -s $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.json $SIMPATH/$(basename $f)
+done
+
 # create a marker file to signal that the simulation is finished in SIMPATH
 touch $SIMPATH/remote_finished
 
