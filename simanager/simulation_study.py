@@ -10,7 +10,7 @@ import yaml
 from .parameter_inspection import ParameterInspection
 from .tools import (
     clone_folder_content,
-    float_filename_fomratter,
+    number_filename_formatter,
     float_representer,
     int_representer,
     numpy_scalar_representer,
@@ -266,7 +266,7 @@ class SimulationStudy:
         simulation_combos = {}
         for i, combination in enumerate(self.yield_parameter_combinations()):
             str_blocks = [
-                c[1] + "_" + float_filename_fomratter(c[2], c[4])
+                c[1] + "_" + number_filename_formatter(c[2], c[4])
                 for c in combination
                 if c[1] is not None
             ]
@@ -318,6 +318,15 @@ class SimulationStudy:
                     yaml.dump(parameters, f)
 
                 print("Test case folder created at: ", folder_path)
+        
+        # count the final number of folders created
+        n_folders = len(os.listdir(os.path.join(main_folder, "scan")))
+        print(f"Number of folders created: {n_folders}")
+        # print the number of folders that were expected
+        print(f"Number of folders expected: {len(simulation_combos) + 1}")
+        # if the number of folders created is different from the expected, raise a warning
+        if n_folders != len(simulation_combos) + 1:
+            print("WARNING: The number of folders created is different from the expected.")
 
         # save the master parameters file
         simulation_info_file = os.path.join(main_folder, "simulation_info.yaml")

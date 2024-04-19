@@ -15,10 +15,14 @@ def clone_folder_content(source_folder, destination_folder):
             shutil.copy2(source_path, destination_path)
 
 
-def float_filename_fomratter(float_number, alternative_idx=0, truncate=3):
-    """Formats a float number to a string with a maximum number of digits."""
+def number_filename_formatter(number, alternative_idx=0, truncate=3):
+    """Formats a number to a string with a maximum number of digits."""
+    # if the number is an integer, just return it as a string
+    if isinstance(number, int):
+        return str(number)
+    # if instead is a float or something that can be converted to a float...    
     try:
-        string = "{:.{prec}}".format(float(float_number), prec=truncate)
+        string = "{:.{prec}}".format(float(number), prec=truncate)
     # if the float_number is not a float, use the alternative_idx
     except TypeError:
         string = str(alternative_idx)
