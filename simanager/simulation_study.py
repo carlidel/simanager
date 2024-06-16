@@ -450,10 +450,6 @@ class SimulationStudy:
                 print(f"REMOTE CHECK: Simulation {sim} has either not started or is still running.")
                 # print("Not updating status.")
 
-        # save the simulation info
-        with open(simulation_info_file, "w", encoding="utf-8") as f:
-            yaml.dump(simulation_info, f)
-
     def print_sim_status(self, update_remote_status=True):
         """Prints the simulation status. If update_remote_status is True, also
         checks if the simulations running remotely are finished by checking the
