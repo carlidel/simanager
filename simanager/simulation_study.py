@@ -71,7 +71,9 @@ class SimulationStudy:
         # self.original_folder = os.path.abspath(self.original_folder)
         # unpack $STUDYPATH environment variable in the original folder
         self.original_folder = os.path.abspath(os.path.expandvars(self.original_folder))
-        self.output_path = os.path.abspath(os.path.join(self.study_path, self.study_name, "output_files"))
+        self.output_path = os.path.abspath(
+            os.path.join(self.study_path, self.study_name, "output_files")
+        )
 
         # construct from the list of parameters inspected the list of parameters
         # using the dataclass ParameterInspection
@@ -329,7 +331,9 @@ class SimulationStudy:
         print(f"Number of folders expected: {len(simulation_combos) + 1}")
         # if the number of folders created is different from the expected, raise a warning
         if n_folders != len(simulation_combos) + 1:
-            print("WARNING: The number of folders created is different from the expected.")
+            print(
+                "WARNING: The number of folders created is different from the expected."
+            )
 
         # save the master parameters file
         simulation_info_file = os.path.join(main_folder, "simulation_info.yaml")
@@ -379,6 +383,33 @@ class SimulationStudy:
                 f"Simulation {sim_name} not found in simulation info file."
             )
 
+        # where is the simulation in the dictionary simulation_info?
+        # find it and move the simulation in the new status
+        if sim_name in simulation_info["sim_not_started"]:
+            simulation_info["sim_not_started"].remove(sim_name)
+            prev_loc = "not_started"
+        elif sim_name in simulation_info["sim_running"]:
+            simulation_info["sim_running"].remove(sim_name)
+            prev_loc = "running"
+        elif sim_name in simulation_info["sim_finished"]:
+            simulation_info["sim_finished"].remove(sim_name)
+            prev_loc = "finished"
+        elif sim_name in simulation_info["sim_interrupted"]:
+            simulation_info["sim_interrupted"].remove(sim_name)
+            prev_loc = "interrupted"
+        elif sim_name in simulation_info["sim_error"]:
+            simulation_info["sim_error"].remove(sim_name)
+            prev_loc = "error"
+        else:
+            raise ValueError(
+                f"Simulation {sim_name} not found in simulation info file."
+            )
+
+        # move the simulation in the new status
+        simulation_info[f"sim_{status}"].append(sim_name)
+        if status != prev_loc:
+            print(f"Moved {sim_name} from {prev_loc} to {status}")
+
         # update the simulation status in its folder
         folder_path = os.path.join(self.study_path, self.study_name, "scan", sim_name)
         parameter_file = os.path.join(folder_path, self.config_file)
@@ -390,6 +421,10 @@ class SimulationStudy:
         with open(parameter_file, "w", encoding="utf-8") as f:
             yaml.dump(parameters, f)
 
+        # save the simulation info
+        with open(simulation_info_file, "w", encoding="utf-8") as f:
+            yaml.dump(simulation_info, f)
+
     def _update_remote_status(self):
         simulation_info_file = os.path.join(
             self.study_path, self.study_name, "simulation_info.yaml"
@@ -400,96 +435,21 @@ class SimulationStudy:
         sim_to_check = (
             simulation_info["sim_not_started"] + simulation_info["sim_running"]
         )
-        folder_path = os.path.join(self.study_path, self.study_name, "remote_touch_files")
+        folder_path = os.path.join(
+            self.study_path, self.study_name, "remote_touch_files"
+        )
         for sim in sim_to_check:
             if os.path.exists(os.path.join(folder_path, "FINISHED_" + sim)):
-                try:
-                    simulation_info["sim_running"].remove(sim)
-                    print(f"Removed {sim} from sim_running")
-                except ValueError:
-                    pass
-                try:
-                    simulation_info["sim_not_started"].remove(sim)
-                    print(f"Removed {sim} from sim_not_started")
-                except ValueError:
-                    pass
-                try:
-                    simulation_info["sim_error"].remove(sim)
-                    print(f"Removed {sim} from sim_error")
-                except ValueError:
-                    pass
-                try:
-                    simulation_info["sim_interrupted"].remove(sim)
-                    print(f"Removed {sim} from sim_interrupted")
-                except ValueError:
-                    pass
-                try:
-                    simulation_info["sim_finished"].remove(sim)
-                    print(f"{sim} has indeed finished")
-                except ValueError:
-                    pass
-                simulation_info["sim_finished"].append(sim)
                 self.set_sim_status(sim, "finished")
-                print(f"Simulation {sim} finished remotely.")
+                print(f"REMOTE CHECK: Simulation {sim} finished remotely.")
             elif os.path.exists(os.path.join(folder_path, "ERROR_" + sim)):
-                try:
-                    simulation_info["sim_running"].remove(sim)
-                    print(f"Removed {sim} from sim_running")
-                except ValueError:
-                    pass
-                try:
-                    simulation_info["sim_not_started"].remove(sim)
-                    print(f"Removed {sim} from sim_not_started")
-                except ValueError:
-                    pass
-                try:
-                    simulation_info["sim_error"].remove(sim)
-                    print(f"Removed {sim} from sim_error")
-                except ValueError:
-                    pass
-                try:
-                    simulation_info["sim_interrupted"].remove(sim)
-                    print(f"Removed {sim} from sim_interrupted")
-                except ValueError:
-                    pass
-                try:
-                    simulation_info["sim_finished"].remove(sim)
-                    print(f"{sim} has indeed finished")
-                except ValueError:
-                    pass
-                simulation_info["sim_error"].append(sim)
                 self.set_sim_status(sim, "error")
-                print(f"Simulation {sim} failed remotely.")
+                print(f"REMOTE CHECK: Simulation {sim} failed remotely.")
             else:
-                try:
-                    simulation_info["sim_running"].remove(sim)
-                    print(f"Removed {sim} from sim_running")
-                except ValueError:
-                    pass
-                try:
-                    simulation_info["sim_not_started"].remove(sim)
-                    print(f"Removed {sim} from sim_not_started")
-                except ValueError:
-                    pass
-                try:
-                    simulation_info["sim_error"].remove(sim)
-                    print(f"Removed {sim} from sim_error")
-                except ValueError:
-                    pass
-                try:
-                    simulation_info["sim_interrupted"].remove(sim)
-                    print(f"Removed {sim} from sim_interrupted")
-                except ValueError:
-                    pass
-                try:
-                    simulation_info["sim_finished"].remove(sim)
-                    print(f"{sim} has indeed finished")
-                except ValueError:
-                    pass
-                simulation_info["sim_not_started"].append(sim)
-                self.set_sim_status(sim, "not_started")
-                print(f"Simulation {sim} has either not started or is still running.")
-        
+                # self.set_sim_status(sim, "not_started")
+                print(f"REMOTE CHECK: Simulation {sim} has either not started or is still running.")
+                # print("Not updating status.")
+
         # save the simulation info
         with open(simulation_info_file, "w", encoding="utf-8") as f:
             yaml.dump(simulation_info, f)
@@ -510,7 +470,7 @@ class SimulationStudy:
         """
         if update_remote_status:
             self._update_remote_status()
-        
+
         # load the simulation info
         simulation_info_file = os.path.join(
             self.study_path, self.study_name, "simulation_info.yaml"
@@ -535,35 +495,35 @@ class SimulationStudy:
             print("------------------------------------------------------------")
             print("Simulations not started:")
             print("------------------------------------------------------------")
-            for sim in simulation_info["sim_not_started"]:
+            for sim in sorted(simulation_info["sim_not_started"]):
                 print(sim)
 
         if len(simulation_info["sim_running"]) > 0:
             print("------------------------------------------------------------")
             print("Simulations running:")
             print("------------------------------------------------------------")
-            for sim in simulation_info["sim_running"]:
+            for sim in sorted(simulation_info["sim_running"]):
                 print(sim)
 
         if len(simulation_info["sim_finished"]) > 0:
             print("------------------------------------------------------------")
             print("Simulations finished:")
             print("------------------------------------------------------------")
-            for sim in simulation_info["sim_finished"]:
+            for sim in sorted(simulation_info["sim_finished"]):
                 print(sim)
 
         if len(simulation_info["sim_interrupted"]) > 0:
             print("------------------------------------------------------------")
             print("Simulations interrupted:")
             print("------------------------------------------------------------")
-            for sim in simulation_info["sim_interrupted"]:
+            for sim in sorted(simulation_info["sim_interrupted"]):
                 print(sim)
 
         if len(simulation_info["sim_error"]) > 0:
             print("------------------------------------------------------------")
             print("Simulations with error:")
             print("------------------------------------------------------------")
-            for sim in simulation_info["sim_error"]:
+            for sim in sorted(simulation_info["sim_error"]):
                 print(sim)
         print("------------------------------------------------------------")
 
@@ -615,6 +575,7 @@ class SimulationStudy:
                 simulation_info["sim_not_started"]
                 + simulation_info["sim_running"]
                 + simulation_info["sim_error"]
+                + simulation_info["sim_interrupted"]
             )
 
         for sim in sim_to_reset:
@@ -641,39 +602,25 @@ class SimulationStudy:
                 # save the parameter file
                 with open(parameter_file, "w", encoding="utf-8") as f:
                     yaml.dump(parameters, f)
+                self.set_sim_status(sim, "not_started")
             else:
                 self.set_sim_status(sim, "not_started")
-                # if the simulation folder has the file 'remote_finished', remove it
-                if os.path.exists(os.path.join(folder_path, "remote_finished")):
-                    os.remove(os.path.join(folder_path, "remote_finished"))
-
-            try:
-                simulation_info["sim_not_started"].remove(sim)
-                print(f"Removed {sim} from sim_not_started")
-            except ValueError:
-                pass
-            try:
-                simulation_info["sim_running"].remove(sim)
-                print(f"Removed {sim} from sim_running")
-            except ValueError:
-                pass
-            try:
-                simulation_info["sim_finished"].remove(sim)
-                print(f"Removed {sim} from sim_finished")
-            except ValueError:
-                pass
-            try:
-                simulation_info["sim_error"].remove(sim)
-                print(f"Removed {sim} from sim_error")
-            except ValueError:
-                pass
-
-            # update the simulation status
-            simulation_info["sim_not_started"].append(sim)
-
-        # save the simulation info
-        with open(simulation_info_file, "w", encoding="utf-8") as f:
-            yaml.dump(simulation_info, f)
+                # if the simulation folder has its file in remote_touch_files
+                # remove it
+                if os.path.exists(
+                    os.path.join(main_folder, "remote_touch_files", "FINISHED_" + sim)
+                ):
+                    os.remove(
+                        os.path.join(
+                            main_folder, "remote_touch_files", "FINISHED_" + sim
+                        )
+                    )
+                if os.path.exists(
+                    os.path.join(main_folder, "remote_touch_files", "ERROR_" + sim)
+                ):
+                    os.remove(
+                        os.path.join(main_folder, "remote_touch_files", "ERROR_" + sim)
+                    )
 
         if clear_out_folder:
             out_folder = os.path.join(main_folder, "out")

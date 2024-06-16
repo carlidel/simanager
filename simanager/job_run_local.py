@@ -19,7 +19,13 @@ SIMPATH=$(pwd)
 FINAL_INSTRUCTIONS_LOCAL_DEFAULT = """
 #___BEGIN_FINAL_INSTRUCTIONS___
 # final instructions
-OUTPUT_DIR=$SIMPATH
+# OUTPUT_DIR=$SIMPATH
+
+# check the return code of the script
+if [ $? -ne 0 ]; then
+    echo "Error in the script!"
+    exit 1
+fi
 """
 
 
@@ -72,8 +78,6 @@ def execute_command(
     # Update the simulation status
     if not is_test:
         with lock:
-            simulation_info["sim_not_started"].remove(simulation_name)
-            simulation_info["sim_running"].append(simulation_name)
             simulation_study.set_sim_status(simulation_name, "running")
 
     # Execute the command using subprocess
@@ -122,8 +126,6 @@ def execute_command(
         # Update the simulation status
         if not is_test:
             with lock:
-                simulation_info["sim_running"].remove(simulation_name)
-                simulation_info["sim_interrupted"].append(simulation_name)
                 simulation_study.set_sim_status(simulation_name, "interrupted")
         return False
     except subprocess.CalledProcessError:
@@ -134,8 +136,6 @@ def execute_command(
         # Update the simulation status
         if not is_test:
             with lock:
-                simulation_info["sim_running"].remove(simulation_name)
-                simulation_info["sim_error"].append(simulation_name)
                 simulation_study.set_sim_status(simulation_name, "error")
         return False
     except Exception as e:
@@ -149,8 +149,6 @@ def execute_command(
         # Update the simulation status once the simulation is finished
         if not is_test:
             with lock:
-                simulation_info["sim_running"].remove(simulation_name)
-                simulation_info["sim_finished"].append(simulation_name)
                 simulation_study.set_sim_status(simulation_name, "finished")
         return True
 
@@ -345,18 +343,6 @@ def job_run_local(simulation_study: SimulationStudy, **kwargs):
             print(f"Finished running at {finishing_time}...")
             print(f"Total running time: {finishing_time - starting_time}...")
 
-        # update the simulation status from the shared dictionary
-        simulation_info["sim_not_started"] = list(shared_sim_status["sim_not_started"])
-        simulation_info["sim_finished"] = list(shared_sim_status["sim_finished"])
-        simulation_info["sim_interrupted"] = list(shared_sim_status["sim_interrupted"])
-        simulation_info["sim_error"] = list(shared_sim_status["sim_error"])
-        simulation_info["sim_running"] = list(shared_sim_status["sim_running"])
-
-        simulation_info["sim_interrupted"] += simulation_info["sim_running"]
-        simulation_info["sim_running"] = []
-        # save the simulation info
-        with open(simulation_info_file, "w", encoding="utf-8") as f:
-            yaml.dump(simulation_info, f)
     else:
         # In this case, we first separate the simulations to run in groups
         # equal to the number of available GPUs, and then we run each group
@@ -440,16 +426,3 @@ def job_run_local(simulation_study: SimulationStudy, **kwargs):
         print("Finished running simulations...")
         print(f"Finished running at {stopping_time}...")
         print(f"Total running time: {stopping_time - starting_time}...")
-        print("Updating simulation info...")
-        # update the simulation status from the shared dictionary
-        simulation_info["sim_not_started"] = list(shared_sim_status["sim_not_started"])
-        simulation_info["sim_finished"] = list(shared_sim_status["sim_finished"])
-        simulation_info["sim_interrupted"] = list(shared_sim_status["sim_interrupted"])
-        simulation_info["sim_error"] = list(shared_sim_status["sim_error"])
-        simulation_info["sim_running"] = list(shared_sim_status["sim_running"])
-
-        simulation_info["sim_interrupted"] += simulation_info["sim_running"]
-        simulation_info["sim_running"] = []
-        # save the simulation info
-        with open(simulation_info_file, "w", encoding="utf-8") as f:
-            yaml.dump(simulation_info, f)
