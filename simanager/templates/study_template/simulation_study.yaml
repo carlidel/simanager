@@ -1,5 +1,5 @@
 # simulation parameters
-study_name: "name_of_the_study"
+study_name: "study"
 # study_path: "./"
 original_folder: "$STUDYPATH/master_study"
 main_file: "main_script.sh"
