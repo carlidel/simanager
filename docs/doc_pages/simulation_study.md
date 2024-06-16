@@ -48,6 +48,12 @@ The ```test_case``` key is used to specify a list of parameters to be used for a
 
 The ```environ_dict``` key is used to specify a dictionary of environment variables to be used for the path expansion. Refer to the ```ParameterInspection``` page for more information on how to use this feature.
 
+## Important guidelines to follow
+
+1. The job in the ```original_folder``` **must** ultimately generate all the output files in a folder named ```output_files``` in the same folder as the main script. This is necessary in order to be able to easily transfer the output files to the desired location, and to be able to easily inspect the results of the study.
+2. In the case of remote job executions, the tracking of the state of the simulations has to be explicitly checked with the command ```simanager status```, which will print the status of the simulations. This is necessary because the remote job execution does not allow for the immediate inspection of the simulation status, and it is probed (partially) by the manager by checking the presence of flag files in the folder ```remote_touch_files```.
+3. In the case of HTcondor executions, where EOS files might be required to be staged in, there is the possibility to leverage on an internal routine for EOS-compliant stage-in. Currently, filepath specified at the first level of depth in the parameter file are detected and moved to a folder named ```eos_files``` in the scratch disk of the remote machine. This is done by the ```simanager run_htcondor``` command, which will stage-in the EOS files before launching the simulations.
+
 ## Getting started quickly with the CLI tools
 
 ### 1. Bootstrap a new study from a template
