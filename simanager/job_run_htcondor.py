@@ -184,7 +184,7 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         The path to the EOS directory where to copy the output files.
     bump_schedd : bool
         If True, bumps the schedd before submitting the jobs.
-        Default is True.
+        Default is False.
     run_test : bool
         If True, runs only the test case, by default False.
     test_time_limit : str
@@ -209,7 +209,7 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     request_gpus = kwargs.pop("request_gpus", False)
     request_cpus = kwargs.pop("request_cpus", 1)
     time_limit = kwargs.pop("time_limit", "longlunch")
-    bump_schedd = kwargs.pop("bump_schedd", True)
+    bump_schedd = kwargs.pop("bump_schedd", False)
     run_test = kwargs.pop("run_test", False)
     test_time_limit = kwargs.pop("test_time_limit", "espresso")
 
