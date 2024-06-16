@@ -315,8 +315,8 @@ class SimulationStudy:
                     update_nested_dict(parameters, c[0], c[2])
 
                 # extra specifications for test case
-                for key in self.test_case:
-                    update_nested_dict(parameters, key, self.test_case[key])
+                for key, item in self.test_case.items():
+                    update_nested_dict(parameters, key, item)
 
                 # save the parameter file
                 with open(parameter_file, "w", encoding="utf-8") as f:

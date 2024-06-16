@@ -346,6 +346,16 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         except subprocess.CalledProcessError:
             print("Error bumping the schedd, continuing anyway...")
             print("Good luck!")
+        except KeyboardInterrupt:
+            print("Keyboard interrupt detected, exiting...")
+            print("Good luck!")
+            return
+        except Exception as e:
+            print("An unexpected error occurred while bumping the schedd, exiting...")
+            print("Good luck!")
+            print("Error message:")
+            print(e)
+            raise e
 
     # submit the jobs while staying in the htcondor_support folder
     print("Submitting the jobs...")
@@ -367,6 +377,22 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         print("were not even submitted!")
         print("----------------------------------------")
         return
+    except KeyboardInterrupt:
+        print("Keyboard interrupt detected, exiting...")
+        print("----------------------------------------")
+        print("You have been saved by the keyboard!")
+        print("The jobs were not submitted!")
+        print("----------------------------------------")
+        return
+    except Exception as e:
+        print("An error occurred while submitting the jobs, exiting...")
+        print("----------------------------------------")
+        print("The gods are not pleased with you!")
+        print("The jobs were not submitted!")
+        print("----------------------------------------")
+        print("Error message:")
+        print(e)
+        raise e
 
     now = datetime.now()
     print("Jobs submitted at", now)
@@ -374,5 +400,5 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     print("Good luck!")
     print("----------------------------------------")
     print("Remember to check the status of your jobs")
-    print("by running the internal function print_sim_status")
+    print("by running `condor_q` or 'simanager status")
     print("----------------------------------------")

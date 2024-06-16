@@ -297,6 +297,14 @@ def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
         print("were not even submitted!")
         print("----------------------------------------")
         return
+    except KeyboardInterrupt as ex:
+        print("Jobs submission interrupted.")
+        print("----------------------------------------")
+        raise ex
+    except Exception as e:
+        print("An error occurred while submitting the jobs.")
+        print("----------------------------------------")
+        raise e
 
     now = datetime.now()
     print("Jobs submitted at", now)
@@ -304,5 +312,5 @@ def job_run_slurm(simulation_study: SimulationStudy, **kwargs):
     print("Good luck!")
     print("----------------------------------------")
     print("Remember to check the status of your jobs")
-    print("by running the internal function print_sim_status")
+    print("by running `squeue -u $USER` or `simanager status`")
     print("----------------------------------------")
