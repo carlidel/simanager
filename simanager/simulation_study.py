@@ -71,6 +71,7 @@ class SimulationStudy:
         # self.original_folder = os.path.abspath(self.original_folder)
         # unpack $STUDYPATH environment variable in the original folder
         self.original_folder = os.path.abspath(os.path.expandvars(self.original_folder))
+        self.output_path = os.path.abspath(os.path.join(self.study_path, self.study_name, "output_files"))
 
         # construct from the list of parameters inspected the list of parameters
         # using the dataclass ParameterInspection
@@ -247,6 +248,8 @@ class SimulationStudy:
         os.makedirs(os.path.join(main_folder, "err"), exist_ok=True)
         os.makedirs(os.path.join(main_folder, "log"), exist_ok=True)
 
+        os.makedirs(os.path.join(main_folder, "output_files"), exist_ok=True)
+        os.makedirs(os.path.join(main_folder, "remote_touch_files"), exist_ok=True)
         os.makedirs(os.path.join(main_folder, "original_folder"), exist_ok=True)
         # clone the original folder content
         clone_folder_content(
@@ -310,15 +313,15 @@ class SimulationStudy:
                     update_nested_dict(parameters, c[0], c[2])
 
                 # extra specifications for test case
-                for key, item in self.test_case:
-                    update_nested_dict(parameters, key, item)
+                for key in self.test_case:
+                    update_nested_dict(parameters, key, self.test_case[key])
 
                 # save the parameter file
                 with open(parameter_file, "w", encoding="utf-8") as f:
                     yaml.dump(parameters, f)
 
                 print("Test case folder created at: ", folder_path)
-        
+
         # count the final number of folders created
         n_folders = len(os.listdir(os.path.join(main_folder, "scan")))
         print(f"Number of folders created: {n_folders}")
@@ -397,9 +400,9 @@ class SimulationStudy:
         sim_to_check = (
             simulation_info["sim_not_started"] + simulation_info["sim_running"]
         )
+        folder_path = os.path.join(self.study_path, self.study_name, "remote_touch_files")
         for sim in sim_to_check:
-            folder_path = os.path.join(self.study_path, self.study_name, "scan", sim)
-            if os.path.exists(os.path.join(folder_path, "remote_finished")):
+            if os.path.exists(os.path.join(folder_path, "FINISHED_" + sim)):
                 try:
                     simulation_info["sim_running"].remove(sim)
                     print(f"Removed {sim} from sim_running")
@@ -428,6 +431,64 @@ class SimulationStudy:
                 simulation_info["sim_finished"].append(sim)
                 self.set_sim_status(sim, "finished")
                 print(f"Simulation {sim} finished remotely.")
+            elif os.path.exists(os.path.join(folder_path, "ERROR_" + sim)):
+                try:
+                    simulation_info["sim_running"].remove(sim)
+                    print(f"Removed {sim} from sim_running")
+                except ValueError:
+                    pass
+                try:
+                    simulation_info["sim_not_started"].remove(sim)
+                    print(f"Removed {sim} from sim_not_started")
+                except ValueError:
+                    pass
+                try:
+                    simulation_info["sim_error"].remove(sim)
+                    print(f"Removed {sim} from sim_error")
+                except ValueError:
+                    pass
+                try:
+                    simulation_info["sim_interrupted"].remove(sim)
+                    print(f"Removed {sim} from sim_interrupted")
+                except ValueError:
+                    pass
+                try:
+                    simulation_info["sim_finished"].remove(sim)
+                    print(f"{sim} has indeed finished")
+                except ValueError:
+                    pass
+                simulation_info["sim_error"].append(sim)
+                self.set_sim_status(sim, "error")
+                print(f"Simulation {sim} failed remotely.")
+            else:
+                try:
+                    simulation_info["sim_running"].remove(sim)
+                    print(f"Removed {sim} from sim_running")
+                except ValueError:
+                    pass
+                try:
+                    simulation_info["sim_not_started"].remove(sim)
+                    print(f"Removed {sim} from sim_not_started")
+                except ValueError:
+                    pass
+                try:
+                    simulation_info["sim_error"].remove(sim)
+                    print(f"Removed {sim} from sim_error")
+                except ValueError:
+                    pass
+                try:
+                    simulation_info["sim_interrupted"].remove(sim)
+                    print(f"Removed {sim} from sim_interrupted")
+                except ValueError:
+                    pass
+                try:
+                    simulation_info["sim_finished"].remove(sim)
+                    print(f"{sim} has indeed finished")
+                except ValueError:
+                    pass
+                simulation_info["sim_not_started"].append(sim)
+                self.set_sim_status(sim, "not_started")
+                print(f"Simulation {sim} has either not started or is still running.")
 
     def print_sim_status(self, update_remote_status=True):
         """Prints the simulation status. If update_remote_status is True, also

@@ -224,6 +224,8 @@ def main():
             )
             config = {}
         config["run_test"] = args.run_test
+        if args.run_test:
+            print("RUNNING TEST SIMULATION.")
         # run the simulation, pass the config dict as kwargs
         job_run_local(sim, **config)
         sim.print_sim_status()
@@ -244,6 +246,8 @@ def main():
             )
             config = {}
         config["run_test"] = args.run_test
+        if args.run_test:
+            print("RUNNING TEST SIMULATION.")
         # run the simulation, pass the config dict as kwargs
         job_run_htcondor(sim, **config)
         sim.print_sim_status()
@@ -259,6 +263,8 @@ def main():
                 if config is None:
                     config = {}
             config["run_test"] = args.run_test
+            if args.run_test:
+                print("RUNNING TEST SIMULATION.")
         except FileNotFoundError:
             warnings.warn(
                 f"Config file '{args.config}' not found. Using default config."

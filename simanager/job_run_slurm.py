@@ -34,10 +34,25 @@ source __REPLACE_WITH_VENV_PATH__
 # stdout and stderr are redirected to $3 and $4
 bash $2 > $3 2> $4
 
+if [ $? -eq 0 ]; then
+    command_success="true"
+else
+    command_success="false"
+fi
+
 # final instructions
 
+# as we are assuming that all output files are in the output_files folder
+# move the output_files folder to the general output folder of the simulation
+# while also renaming it to the name of the simulation
+mv -v output_files $SIMPATH/../../output_files/$(basename $SIMPATH)
+
 # create a marker file to signal that the simulation is finished in SIMPATH
-touch $SIMPATH/remote_finished
+if [ $command_success == "true" ]; then
+    touch $SIMPATH/../../remote_touch_files/FINISHED_$(basename $SIMPATH)
+else
+    touch $SIMPATH/../../remote_touch_files/ERROR_$(basename $SIMPATH)
+fi
 """
 
 SUBMISSION_SLURM_DEFAULT = """#!/bin/bash

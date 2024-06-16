@@ -17,6 +17,10 @@ args = parser.parse_args()
 with open(args.yaml_path, "r", encoding="utf-8") as f:
     yaml_dict = yaml.safe_load(f)
 
+# MUST : SAVE ALL OUTPUT FILES IN A FOLDER CALLED "output_files"
+os.makedirs("output_files", exist_ok=True)
+OUTPATH = "./output_files/"
+
 ### START CUSTOM CODE ###
 
 print("Hello world!")
