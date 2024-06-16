@@ -81,7 +81,7 @@ echo "Contents of the output_files folder:"
 ls -l ./output_files
 
 echo "Copying output_files content to EOS"
-eos cp -r -p ./output_files/* $EOS_DIR/$SIMNAME
+eos cp -r -p ./output_files $EOS_DIR/$SIMNAME
 
 # create a symbolic link of the output_files folder in the OUTPUTPATH
 ln -s $EOS_DIR/$SIMNAME $OUTPUTPATH/$SIMNAME
