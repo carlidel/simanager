@@ -489,6 +489,10 @@ class SimulationStudy:
                 simulation_info["sim_not_started"].append(sim)
                 self.set_sim_status(sim, "not_started")
                 print(f"Simulation {sim} has either not started or is still running.")
+        
+        # save the simulation info
+        with open(simulation_info_file, "w", encoding="utf-8") as f:
+            yaml.dump(simulation_info, f)
 
     def print_sim_status(self, update_remote_status=True):
         """Prints the simulation status. If update_remote_status is True, also
@@ -504,15 +508,15 @@ class SimulationStudy:
             the simulation folders and updates the simulation status
             accordingly. The default is True.
         """
+        if update_remote_status:
+            self._update_remote_status()
+        
         # load the simulation info
         simulation_info_file = os.path.join(
             self.study_path, self.study_name, "simulation_info.yaml"
         )
         with open(simulation_info_file, "r", encoding="utf-8") as f:
             simulation_info = yaml.safe_load(f)
-
-        if update_remote_status:
-            self._update_remote_status()
 
         print("------------------------------------------------------------")
         print("Simulation status:")
