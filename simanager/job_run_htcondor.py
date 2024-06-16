@@ -80,8 +80,11 @@ EOS_DIR=__REPLACE_WITH_EOS_DIR__
 echo "Contents of the output_files folder:"
 ls -l ./output_files
 
+# create the EOS directory
+eos mkdir -p $EOS_DIR/$SIMNAME
+
 echo "Copying output_files content to EOS"
-eos cp -r -p ./output_files $EOS_DIR/$SIMNAME
+eos cp -r -p ./output_files/* $EOS_DIR/$SIMNAME
 
 # create a symbolic link of the output_files folder in the OUTPUTPATH
 ln -s $EOS_DIR/$SIMNAME $OUTPUTPATH/$SIMNAME
