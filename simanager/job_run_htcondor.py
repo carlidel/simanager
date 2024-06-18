@@ -24,21 +24,45 @@ echo "VENV environment:"
 echo "__REPLACE_WITH_VENV_PATH__"
 
 SIMPATH=$1
+# two levels up from the current folder
+STUDYPATH=$(dirname $(dirname $SIMPATH))
+# add the folder output_files to the STUDYPATH
+OUTPUTPATH=$STUDYPATH/output_files
+# get the name of the simulation from SIMPATH
+SIMNAME=$(basename $SIMPATH)
 
 echo "SIMPATH:"
 echo $SIMPATH
 
-# copy all contents of the folder SIMPATH to the current folder
-cp -r $SIMPATH/* .
+echo "STUDYPATH:"
+echo $STUDYPATH
+
+echo "OUTPUTPATH:"
+echo $OUTPUTPATH
+
+echo "SIMNAME:"
+echo $SIMNAME
+
+# copy all contents of the folder SIMNAME to the current folder
+cp -r ./$SIMNAME/* .
+
+# delete the local folder SIMNAME
+rm -rf ./$SIMNAME
 
 # execute eos_stage_in.py
-python ___REPLACE_WITH_EOSSTAGEIN__ --yaml_path "___REPLACE_WITH_YAML_NAME___"
+python eos_stage_in.py --yaml_path "___REPLACE_WITH_YAML_NAME___"
 
 #___END_INITIAL_INSTRUCTIONS___
 """
 
 FINAL_INSTRUCTIONS_HTCONDOR_DEFAULT = """
 #___BEGIN_FINAL_INSTRUCTIONS___
+
+if [ $? -eq 0 ]; then
+    command_success="true"
+else
+    command_success="false"
+fi
 
 # if exists, remove the folder ./input_eos
 if [ -d "./input_eos" ]; then
@@ -48,107 +72,33 @@ fi
 # final instructions
 EOS_DIR=__REPLACE_WITH_EOS_DIR__
 
-# grab list of *.h5 files
-h5_files=$(ls ./*.h5)
-# copy them to EOS
-for f in $h5_files
-do
-    echo "Copying $f to EOS"
-    bn="${f##*/}"  # Extract the filename from the path
-    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
-    eos cp ./$(basename $f) $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.h5
-done
-# create a symbolic link of the various files in the output folder
-for f in $h5_files
-do
-    echo "Creating symbolic link for $f"
-    bn="${f##*/}"  # Extract the filename from the path
-    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
-    ln -s $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.h5 $SIMPATH/$(basename $f)
-done
+# we assume that all output files are generated in a folder named "output_files"
+# so we want to copy and rename the entire folder to the EOS directory
+# while creating symbolic links in the general output folder
 
-# grab list of *.pkl files
-pkl_files=$(ls ./*.pkl)
-# copy them to EOS
-for f in $pkl_files
-do
-    echo "Copying $f to EOS"
-    bn="${f##*/}"  # Extract the filename from the path
-    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
-    eos cp ./$(basename $f) $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.pkl
-done
-# create a symbolic link of the various files in the output folder
-for f in $pkl_files
-do
-    echo "Creating symbolic link for $f"
-    bn="${f##*/}"  # Extract the filename from the path
-    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
-    ln -s $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.pkl $SIMPATH/$(basename $f)
-done
+# first, print the contents of the output_files folder
+echo "Contents of the output_files folder:"
+ls -l ./output_files
 
-# grab list of *.out files
-out_files=$(ls ./*.out)
-# copy them to EOS
-for f in $out_files
-do
-    echo "Copying $f to EOS"
-    bn="${f##*/}"  # Extract the filename from the path
-    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
-    eos cp ./$(basename $f) $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.out
-done
-# create a symbolic link of the various files in the output folder
-for f in $out_files
-do
-    echo "Creating symbolic link for $f"
-    bn="${f##*/}"  # Extract the filename from the path
-    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
-    ln -s $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.out $SIMPATH/$(basename $f)
-done
+# create the EOS directory
+eos mkdir -p $EOS_DIR/$SIMNAME
 
-# grab list of *.yaml files
-yaml_files=$(ls ./*.yaml)
-# copy them to EOS
-for f in $yaml_files
-do
-    echo "Copying $f to EOS"
-    bn="${f##*/}"  # Extract the filename from the path
-    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
-    eos cp ./$(basename $f) $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.yaml
-done
-# create a symbolic link of the various files in the output folder
-for f in $yaml_files
-do
-    echo "Creating symbolic link for $f"
-    bn="${f##*/}"  # Extract the filename from the path
-    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
-    ln -s $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.yaml $SIMPATH/$(basename $f)
-done
+echo "Copying output_files content to EOS"
+eos cp -r -p ./output_files/* $EOS_DIR/$SIMNAME
 
-# grab list of *.json files
-json_files=$(ls ./*.json)
-# copy them to EOS
-for f in $json_files
-do
-    echo "Copying $f to EOS"
-    bn="${f##*/}"  # Extract the filename from the path
-    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
-    eos cp ./$(basename $f) $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.json
-done
-# create a symbolic link of the various files in the output folder
-for f in $json_files
-do
-    echo "Creating symbolic link for $f"
-    bn="${f##*/}"  # Extract the filename from the path
-    bn_no_ext="${bn%.*}"  # Remove the extension from the filename
-    ln -s $EOS_DIR/${bn_no_ext}___REPLACE_WITH_CASENAME__.json $SIMPATH/$(basename $f)
-done
+# create a symbolic link of the output_files folder in the OUTPUTPATH
+ln -s $EOS_DIR/$SIMNAME $OUTPUTPATH/$SIMNAME
 
 # create a marker file to signal that the simulation is finished in SIMPATH
-touch $SIMPATH/remote_finished
+if [ $command_success == "true" ]; then
+    touch $SIMPATH/../../remote_touch_files/FINISHED_$(basename $SIMPATH)
+else
+    touch $SIMPATH/../../remote_touch_files/ERROR_$(basename $SIMPATH)
+fi
 
 """
 
-HTCONDOR_SUBMIT_FILE_DEFAULT_CPU = """
+HTCONDOR_SUBMIT_FILE_COMMON_BEG = """
 universe   = vanilla
 
 executable = $(Executable)
@@ -158,44 +108,34 @@ output     = $(Outpath)
 error      = $(Errpath)
 log        = __REPLACE_WITH_LOG_PATH__
 
+transfer_input_files = $(Simpath), __REPLACE_WITH_EOSSTAGEIN__
 transfer_output_files = ""
 
-requirements = regexp("(CentOS7|AlmaLinux9)", OpSysAndVer)
+# requirements = regexp("(CentOS7|AlmaLinux9)", OpSysAndVer)
 
 request_cpus = __REPLACE_WITH_REQUEST_CPUS__
 
 MY.JobFlavour = "__REPLACE_WITH_TIME_LIMIT__"
 
 MY.AccountingGroup = "group_u_BE.ABP.normal"
-MY.WantOS = "el9"
+# MY.WantOS = "el9"
 
+"""
+
+HTCONDOR_SUBMIT_FILE_COMMON_END = """
 queue Executable,Simpath,Outpath,Errpath from __REPLACE_WITH_QUEUE_FILE__
 """
 
-HTCONDOR_SUBMIT_FILE_DEFAULT_GPU = """
-universe   = vanilla
+HTCONDOR_SUBMIT_FILE_DEFAULT_CPU = HTCONDOR_SUBMIT_FILE_COMMON_BEG + HTCONDOR_SUBMIT_FILE_COMMON_END
 
-executable = $(Executable)
-arguments  = $(Simpath)
-
-output     = $(Outpath)
-error      = $(Errpath)
-log        = __REPLACE_WITH_LOG_PATH__
-
-transfer_output_files = ""
-
-requirements = regexp("(V100|A100)", Target.GPUs_DeviceName) && regexp("(CentOS7|AlmaLinux9)", OpSysAndVer)
+HTCONDOR_SUBMIT_FILE_DEFAULT_GPU = (
+    HTCONDOR_SUBMIT_FILE_COMMON_BEG + 
+"""
+requirements = regexp("(V100|A100)", Target.GPUs_DeviceName)
 
 request_GPUs = __REPLACE_WITH_REQUEST_GPUS__
-request_cpus = __REPLACE_WITH_REQUEST_CPUS__
-
-MY.JobFlavour = "__REPLACE_WITH_TIME_LIMIT__"
-
-MY.AccountingGroup = "group_u_BE.ABP.normal"
-MY.WantOS = "el9"
-
-queue Executable,Simpath,Outpath,Errpath from __REPLACE_WITH_QUEUE_FILE__
-"""
+""" +
+    HTCONDOR_SUBMIT_FILE_COMMON_END)
 
 
 def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
@@ -247,9 +187,11 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         The path to the EOS directory where to copy the output files.
     bump_schedd : bool
         If True, bumps the schedd before submitting the jobs.
-        Default is True.
+        Default is False.
     run_test : bool
         If True, runs only the test case, by default False.
+    test_time_limit : str
+        The time limit for the test case. By default, "espresso".
 
     Raises
     ------
@@ -270,8 +212,9 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     request_gpus = kwargs.pop("request_gpus", False)
     request_cpus = kwargs.pop("request_cpus", 1)
     time_limit = kwargs.pop("time_limit", "longlunch")
-    bump_schedd = kwargs.pop("bump_schedd", True)
+    bump_schedd = kwargs.pop("bump_schedd", False)
     run_test = kwargs.pop("run_test", False)
+    test_time_limit = kwargs.pop("test_time_limit", "espresso")
 
     htcondor_submit_str = kwargs.pop(
         "htcondor_submit_template",
@@ -311,11 +254,15 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         "__REPLACE_WITH_REQUEST_CPUS__", str(request_cpus)
     )
     htcondor_submit_str = htcondor_submit_str.replace(
-        "__REPLACE_WITH_TIME_LIMIT__", time_limit
+        "__REPLACE_WITH_TIME_LIMIT__",
+        time_limit if not run_test else test_time_limit
     )
     htcondor_submit_str = htcondor_submit_str.replace(
         "__REPLACE_WITH_QUEUE_FILE__",
         os.path.join(htcondor_support_folder, "queue.txt"),
+    )
+    htcondor_submit_str = htcondor_submit_str.replace(
+        "__REPLACE_WITH_EOSSTAGEIN__", eos_sif_in_dest
     )
     if request_gpus:
         htcondor_submit_str = htcondor_submit_str.replace(
@@ -353,9 +300,6 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     )
     initial_instructions = initial_instructions.replace(
         "__REPLACE_WITH_VENV_PATH__", venv_path
-    )
-    initial_instructions = initial_instructions.replace(
-        "___REPLACE_WITH_EOSSTAGEIN__", eos_sif_in_dest
     )
     initial_instructions = initial_instructions.replace(
         "___REPLACE_WITH_YAML_NAME___", simulation_study.config_file
@@ -402,6 +346,16 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         except subprocess.CalledProcessError:
             print("Error bumping the schedd, continuing anyway...")
             print("Good luck!")
+        except KeyboardInterrupt:
+            print("Keyboard interrupt detected, exiting...")
+            print("Good luck!")
+            return
+        except Exception as e:
+            print("An unexpected error occurred while bumping the schedd, exiting...")
+            print("Good luck!")
+            print("Error message:")
+            print(e)
+            raise e
 
     # submit the jobs while staying in the htcondor_support folder
     print("Submitting the jobs...")
@@ -423,6 +377,22 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         print("were not even submitted!")
         print("----------------------------------------")
         return
+    except KeyboardInterrupt:
+        print("Keyboard interrupt detected, exiting...")
+        print("----------------------------------------")
+        print("You have been saved by the keyboard!")
+        print("The jobs were not submitted!")
+        print("----------------------------------------")
+        return
+    except Exception as e:
+        print("An error occurred while submitting the jobs, exiting...")
+        print("----------------------------------------")
+        print("The gods are not pleased with you!")
+        print("The jobs were not submitted!")
+        print("----------------------------------------")
+        print("Error message:")
+        print(e)
+        raise e
 
     now = datetime.now()
     print("Jobs submitted at", now)
@@ -430,5 +400,5 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     print("Good luck!")
     print("----------------------------------------")
     print("Remember to check the status of your jobs")
-    print("by running the internal function print_sim_status")
+    print("by running `condor_q` or 'simanager status")
     print("----------------------------------------")

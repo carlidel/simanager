@@ -1,5 +1,5 @@
-if [ -z "$SIMPATH" ]; then
-    SIMPATH=$(pwd)
+if [ -z "$WORKDIR" ]; then
+    WORKDIR=$(pwd)
 fi
 
-python script.py --yaml_path "$SIMPATH/params.yaml"
+python $WORKDIR/script.py --yaml_path "$WORKDIR/params.yaml"
