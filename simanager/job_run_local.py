@@ -370,7 +370,7 @@ def job_run_local(simulation_study: SimulationStudy, **kwargs):
 
         for i, sim in enumerate(simulations_to_run):
             gpu_idx = i % n_gpu_available
-            argument_dict[gpu_idx].append(
+            argument_dict[gpu_available_list[gpu_idx]].append(
                 (
                     [
                         "bash",
