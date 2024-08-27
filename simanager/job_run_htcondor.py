@@ -15,13 +15,11 @@ INITIAL_INSTRUCTIONS_HTCONDOR_DEFAULT = """#!/bin/bash
 export EOS_MGM_URL=root://eosuser.cern.ch
 
 source __REPLACE_WITH_CVMFS_PATH__
-source __REPLACE_WITH_VENV_PATH__
-
 # echo the sourced environments
 echo "CVMFS environment:"
 echo "__REPLACE_WITH_CVMFS_PATH__"
-echo "VENV environment:"
-echo "__REPLACE_WITH_VENV_PATH__"
+
+__REPLACE_WITH_LOAD_VENV__
 
 SIMPATH=$1
 # two levels up from the current folder
@@ -53,6 +51,23 @@ rm -rf ./$SIMNAME
 python eos_stage_in.py --yaml_path "___REPLACE_WITH_YAML_NAME___"
 
 #___END_INITIAL_INSTRUCTIONS___
+"""
+
+INSTRUCTIONS_LOAD_VENV = """
+# load the virtual environment
+source __REPLACE_WITH_VENV_PATH__
+# echo the sourced environments
+echo "VENV environment:"
+echo "__REPLACE_WITH_VENV_PATH__"
+"""
+
+INSTRUCTIONS_CREATE_VENV = """
+# create a new virtual environment
+python3 -m venv venv --system-site-packages
+# activate the virtual environment
+source venv/bin/activate
+# install the requirements
+pip install -r requirements.txt
 """
 
 FINAL_INSTRUCTIONS_HTCONDOR_DEFAULT = """
@@ -108,7 +123,7 @@ output     = $(Outpath)
 error      = $(Errpath)
 log        = __REPLACE_WITH_LOG_PATH__
 
-transfer_input_files = $(Simpath), __REPLACE_WITH_EOSSTAGEIN__
+transfer_input_files = $(Simpath), __REPLACE_WITH_EOSSTAGEIN__ __REPLACE_WITH_REQUIREMENTS__
 transfer_output_files = ""
 
 # requirements = regexp("(CentOS7|AlmaLinux9)", OpSysAndVer)
@@ -126,16 +141,93 @@ HTCONDOR_SUBMIT_FILE_COMMON_END = """
 queue Executable,Simpath,Outpath,Errpath from __REPLACE_WITH_QUEUE_FILE__
 """
 
-HTCONDOR_SUBMIT_FILE_DEFAULT_CPU = HTCONDOR_SUBMIT_FILE_COMMON_BEG + HTCONDOR_SUBMIT_FILE_COMMON_END
+HTCONDOR_SUBMIT_FILE_DEFAULT_CPU = (
+    HTCONDOR_SUBMIT_FILE_COMMON_BEG + HTCONDOR_SUBMIT_FILE_COMMON_END
+)
 
 HTCONDOR_SUBMIT_FILE_DEFAULT_GPU = (
-    HTCONDOR_SUBMIT_FILE_COMMON_BEG + 
-"""
+    HTCONDOR_SUBMIT_FILE_COMMON_BEG
+    + """
 requirements = regexp("(V100|A100)", Target.GPUs_DeviceName)
 
 request_GPUs = __REPLACE_WITH_REQUEST_GPUS__
-""" +
-    HTCONDOR_SUBMIT_FILE_COMMON_END)
+"""
+    + HTCONDOR_SUBMIT_FILE_COMMON_END
+)
+
+
+def _process_requirements_file(requirements_string, transfer_editable=False):
+    """Process the requirements file string.
+
+    Parameters
+    ----------
+    requirements_string : str
+        The requirements file string.
+    transfer_editable : bool
+        If True, transfers the editable requirements packages.
+        Default is False.
+
+    Returns
+    -------
+    str
+        The processed requirements file string.
+    """
+    if transfer_editable:
+        raise NotImplementedError("Editable requirements are not supported yet")
+
+    output = ""
+    # split the string by lines
+    lines = requirements_string.split("\n")
+    editable_flag = False
+    for line in lines:
+        # if the line is empty, skip it
+        if not line:
+            continue
+        # if the line starts with a comment, skip it
+        if line.startswith("#"):
+            continue
+        # if the line contains the string "-e", process it
+        if line.startswith("-e"):
+            # get the package name
+            package_name = line.split(" ")[1]
+            # we expect the package name to be in the format
+            # "git+https://github.com/remote/repo.git@committag#egg=egg_location&subdirectory=../../../path/of/everything"
+            # so we split by "&" and discard the last element
+            # but first we check that the package name actually is "git+" and not something else
+            if not package_name.startswith("git+"):
+                raise NotImplementedError(
+                    "This editable package does not seem to be related to a git repository. Non-git editable packages are not supported yet."
+                )
+
+            # split by "&"
+            package_name_parts = package_name.split("&")
+            # if there is more than two parts, keep only the first two
+            if len(package_name_parts) > 2:
+                package_name_parts = package_name_parts[:2]
+            # join the parts with "&"
+            package_name = "&".join(package_name_parts)
+            # append the package name to the output
+            output += package_name + "\n"
+            # inform the user that the package was processed
+            print(f"Processed editable package: {package_name}")
+            editable_flag = True
+        else:
+            # if the line does not contain the string "-e", just append it to the output
+            output += line + "\n"
+
+    if editable_flag:
+        # print a "=" line, filling the terminal width
+        print("=" * shutil.get_terminal_size().columns)
+        print(
+            "WARNING: Editable packages are not supported yet, the package will be installed as a regular package from the corresponding git repository"
+        )
+        print("any local changes will not be reflected in the installed package")
+        print(
+            "if you need to install the package with local changes, please commit them to the repository"
+        )
+        print("=" * shutil.get_terminal_size().columns)
+
+    return output
 
 
 def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
@@ -182,7 +274,10 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         Default is "/cvmfs/sft.cern.ch/lcg/views/LCG_104a_cuda/x86_64-el9-gcc11-opt/setup.sh".
     venv_path : str
         The path to the virtual environment to use.
-        Default is the same as cvmfs_path.
+        Default is the same as cvmfs_path if neither venv_path nor requirements_path are provided.
+    requirements_path : str
+        The path to the requirements file to use.
+        Default is the same as cvmfs_path if neither venv_path nor requirements_path are provided.
     eos_dir : str
         The path to the EOS directory where to copy the output files.
     bump_schedd : bool
@@ -218,17 +313,38 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
 
     htcondor_submit_str = kwargs.pop(
         "htcondor_submit_template",
-        HTCONDOR_SUBMIT_FILE_DEFAULT_CPU
-        if not request_gpus
-        else HTCONDOR_SUBMIT_FILE_DEFAULT_GPU,
+        (
+            HTCONDOR_SUBMIT_FILE_DEFAULT_CPU
+            if not request_gpus
+            else HTCONDOR_SUBMIT_FILE_DEFAULT_GPU
+        ),
     )
 
     cvmfs_path = kwargs.pop(
         "cvmfs_path",
         "/cvmfs/sft.cern.ch/lcg/views/LCG_104a_cuda/x86_64-el9-gcc11-opt/setup.sh",
     )
-    # if no venv path is provided, just reload the cvmfs environment
-    venv_path = kwargs.pop("venv_path", cvmfs_path)
+
+    # check venv_path and requirements_path
+    venv_path = kwargs.pop("venv_path", None)
+    requirements_path = kwargs.pop("requirements_path", None)
+    if venv_path is None and requirements_path is None:
+        venv_path = cvmfs_path
+        requirements_path = None
+        # just operate as if the user did not provide the requirements_path
+        use_requirements = False
+    elif venv_path is not None and requirements_path is not None:
+        # if both are provided, raise an error
+        raise ValueError(
+            "Both venv_path and requirements_path were provided, please provide only one"
+        )
+    elif venv_path is not None:
+        # if only venv_path is provided, use it
+        use_requirements = False
+    elif requirements_path is not None:
+        # if only requirements_path is provided, use it
+        use_requirements = True
+
     eos_dir = kwargs.pop("eos_dir", "/eos/user/c/camontan/data")
 
     # if unexpected keyword arguments are passed, raise an error
@@ -254,8 +370,7 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         "__REPLACE_WITH_REQUEST_CPUS__", str(request_cpus)
     )
     htcondor_submit_str = htcondor_submit_str.replace(
-        "__REPLACE_WITH_TIME_LIMIT__",
-        time_limit if not run_test else test_time_limit
+        "__REPLACE_WITH_TIME_LIMIT__", time_limit if not run_test else test_time_limit
     )
     htcondor_submit_str = htcondor_submit_str.replace(
         "__REPLACE_WITH_QUEUE_FILE__",
@@ -274,13 +389,6 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         "__REPLACE_WITH_LOG_PATH__", os.path.join(log_path, log_name)
     )
 
-    # save the submit file
-    htcondor_submit_file = os.path.join(
-        htcondor_support_folder, "htcondor_submit_file.sub"
-    )
-    with open(htcondor_submit_file, "w", encoding="utf-8") as f:
-        f.write(htcondor_submit_str)
-
     # load the simulation info
     simulation_info_file = os.path.join(sim_folder, "simulation_info.yaml")
     with open(simulation_info_file, "r", encoding="utf-8") as f:
@@ -295,11 +403,41 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     root_folder = simulation_info["root_folder"]
 
     # specialize the initial and final instructions
+    if use_requirements:
+        # specialize initial instructions accordingly
+        initial_instructions = initial_instructions.replace(
+            "__REPLACE_WITH_LOAD_VENV__", INSTRUCTIONS_CREATE_VENV
+        )
+        # process the requirements file
+        with open(requirements_path, "r", encoding="utf-8") as f:
+            requirements_content = f.read()
+        requirements_content = _process_requirements_file(requirements_content)
+        # save the requirements file in the htcondor_support folder
+        requirements_file_path = os.path.join(
+            htcondor_support_folder, "requirements.txt"
+        )
+        with open(requirements_file_path, "w", encoding="utf-8") as f:
+            f.write(requirements_content)
+        # specialize the submit file
+        htcondor_submit_str = htcondor_submit_str.replace(
+            "__REPLACE_WITH_REQUIREMENTS__", ", " + requirements_file_path
+        )
+
+    else:
+        # specialize initial instructions accordingly
+        initial_instructions = initial_instructions.replace(
+            "__REPLACE_WITH_LOAD_VENV__", INSTRUCTIONS_LOAD_VENV
+        )
+        initial_instructions = initial_instructions.replace(
+            "__REPLACE_WITH_VENV_PATH__", venv_path
+        )
+        # specialize the submit file
+        htcondor_submit_str = htcondor_submit_str.replace(
+            "__REPLACE_WITH_REQUIREMENTS__", ""
+        )
+
     initial_instructions = initial_instructions.replace(
         "__REPLACE_WITH_CVMFS_PATH__", cvmfs_path
-    )
-    initial_instructions = initial_instructions.replace(
-        "__REPLACE_WITH_VENV_PATH__", venv_path
     )
     initial_instructions = initial_instructions.replace(
         "___REPLACE_WITH_YAML_NAME___", simulation_study.config_file
@@ -330,6 +468,13 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         queue_file_content += f"{main_file}, {folder_path}, {os.path.join(stdout_path, sim + '.out')}, {os.path.join(stderr_path, sim + '.err')}\n"
 
         print(f"Added {sim} to the queue file")
+
+    # save the submit file
+    htcondor_submit_file = os.path.join(
+        htcondor_support_folder, "htcondor_submit_file.sub"
+    )
+    with open(htcondor_submit_file, "w", encoding="utf-8") as f:
+        f.write(htcondor_submit_str)
 
     print("Total number of jobs:", len(simulations_to_run))
 
