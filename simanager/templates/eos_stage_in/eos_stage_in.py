@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
     # scan the dictionary for eos paths
     for key, value in config.items():
-        if isinstance(value, str) and value.startswith("/eos"):
+        if isinstance(value, str) and (value.startswith("/eos") or value.startswith("/afs")):
             to_move_dict[key] = value
 
     # move the files
