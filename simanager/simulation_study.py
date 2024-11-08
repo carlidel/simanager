@@ -174,9 +174,9 @@ class SimulationStudy:
                 )
             elif combo_method == "meshgrid":
                 vv = np.meshgrid(*values)
-                vv = [v.flatten() for v in vv]
+                vv = [v.flatten().tolist() for v in vv]
                 id_equiv = np.meshgrid(*[range(len(v)) for v in values])
-                id_equiv = [v.flatten() for v in id_equiv]
+                id_equiv = [v.flatten().tolist() for v in id_equiv]
                 vv = list(zip(*vv))
                 id_equiv = list(zip(*id_equiv))
                 joined_combinations.append(
