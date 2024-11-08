@@ -3,6 +3,7 @@ import pickle
 import shutil
 from dataclasses import asdict, dataclass, field
 from itertools import product
+import pandas as pd
 
 import numpy as np
 import yaml
@@ -15,6 +16,8 @@ from .tools import (
     int_representer,
     numpy_scalar_representer,
     update_nested_dict,
+    flatten_dict,
+    insert_nested_dict_in_dataframe,
 )
 
 
@@ -299,8 +302,8 @@ class SimulationStudy:
             # save the combination info
             simulation_combos[foldername] = combination
 
-            # create the test case folder
             if i == 0:
+                # create the test case folder
                 folder_path = os.path.join(main_folder, "scan", "test")
                 os.makedirs(folder_path, exist_ok=True)
                 clone_folder_content(
@@ -323,6 +326,22 @@ class SimulationStudy:
                     yaml.dump(parameters, f)
 
                 print("Test case folder created at: ", folder_path)
+
+                # create the information DataFrame
+                keys_for_df = list(flatten_dict(parameters).keys())
+                # add extra columns for the folder name and output path
+                keys_for_df += ["folder_name", "output_path"]
+                dataframe_info = pd.DataFrame(columns=keys_for_df)
+            
+            # make the extra_dict with the folder name and output path
+            extra_dict = {
+                "folder_name": foldername,
+                "output_path": os.path.join(self.output_path, foldername),
+            }
+            # add a row to the dataframe
+            dataframe_info = insert_nested_dict_in_dataframe(
+                dataframe_info, parameters, extra_dict
+            )
 
         # count the final number of folders created
         n_folders = len(os.listdir(os.path.join(main_folder, "scan")))
@@ -348,6 +367,15 @@ class SimulationStudy:
         simulation_combos_file = os.path.join(main_folder, "simulation_combos.pkl")
         with open(simulation_combos_file, "wb") as f:
             pickle.dump(simulation_combos, f)
+        
+        # save the information DataFrame
+        # if present, remove the column "simulation_status"
+        if "simulation_status" in dataframe_info.columns:
+            dataframe_info = dataframe_info.drop(columns=["simulation_status"])
+
+        dataframe_info_file = os.path.join(main_folder, "simulation_info.csv")
+        dataframe_info.to_csv(dataframe_info_file, index=False)
+        dataframe_info.to_parquet(dataframe_info_file.replace(".csv", ".parquet"))
 
         self.folders_created = True
 
