@@ -375,7 +375,7 @@ class SimulationStudy:
 
         dataframe_info_file = os.path.join(main_folder, "simulation_info.csv")
         dataframe_info.to_csv(dataframe_info_file, index=False)
-        dataframe_info.to_parquet(dataframe_info_file.replace(".csv", ".parquet"))
+        dataframe_info.to_pickle(dataframe_info_file.replace(".csv", ".pkl"))
 
         self.folders_created = True
 
