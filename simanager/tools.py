@@ -103,14 +103,12 @@ def flatten_dict(d, parent_key="", sep="/"):
 
 def insert_nested_dict_in_dataframe(df, nested_dict, extra_dict):
     """
-    Writes a nested dictionary in a dataframe. Nested keys are separated by '/'.
+    Inserts a flattened nested dictionary and additional key-value pairs into a DataFrame as a new row.
     """
-    to_write_dict = flatten_dict(nested_dict)
-    # add the extra_dict to the to_write_dict
-    to_write_dict.update(extra_dict)
-    # add a row to the dataframe with the to_write_dict
-    # convert the dictionary to a pandas df
+    # Flatten the nested dictionary and merge it with the extra dictionary
+    to_write_dict = {**flatten_dict(nested_dict), **extra_dict}
+
+    # Convert the dictionary to a DataFrame with a single row and concatenate
     df_new_row = pd.DataFrame([to_write_dict])
-    # append the new row to the dataframe
-    df = pd.concat([df, df_new_row], ignore_index=True)
-    return df
+    final_df = pd.concat([df, df_new_row], ignore_index=True)
+    return final_df
