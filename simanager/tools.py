@@ -1,6 +1,6 @@
 import os
 import shutil
-
+import pandas as pd
 
 def clone_folder_content(source_folder, destination_folder):
     """
@@ -88,3 +88,27 @@ def clean_script_from_templates(data):
     except IndexError:
         pass
     return data
+
+
+def flatten_dict(d, parent_key="", sep="/"):
+    items = []
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, new_key, sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+
+def insert_nested_dict_in_dataframe(df, nested_dict, extra_dict):
+    """
+    Inserts a flattened nested dictionary and additional key-value pairs into a DataFrame as a new row.
+    """
+    # Flatten the nested dictionary and merge it with the extra dictionary
+    to_write_dict = {**flatten_dict(nested_dict), **extra_dict}
+
+    # Convert the dictionary to a DataFrame with a single row and concatenate
+    df_new_row = pd.DataFrame([to_write_dict])
+    final_df = pd.concat([df, df_new_row], ignore_index=True)
+    return final_df
