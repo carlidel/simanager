@@ -95,11 +95,11 @@ EOS_DIR=__REPLACE_WITH_EOS_DIR__
 echo "Contents of the output_files folder:"
 ls -l ./output_files
 
-# create the EOS directory
-eos mkdir -p $EOS_DIR/$SIMNAME
-
-echo "Copying output_files content to EOS"
-eos cp -r -p ./output_files/* $EOS_DIR/$SIMNAME
+# # create the EOS directory
+# eos mkdir -p $EOS_DIR/$SIMNAME
+# 
+# echo "Copying output_files content to EOS"
+# eos cp -r -p ./output_files/* $EOS_DIR/$SIMNAME
 
 # create a symbolic link of the output_files folder in the OUTPUTPATH
 ln -s $EOS_DIR/$SIMNAME $OUTPUTPATH/$SIMNAME
@@ -135,10 +135,14 @@ MY.JobFlavour = "__REPLACE_WITH_TIME_LIMIT__"
 MY.AccountingGroup = "group_u_BE.ABP.normal"
 # MY.WantOS = "el9"
 
+transfer_output_files = "output_files/"
+output_destination = "root://eosuser.cern.ch/$(Outfilepath)"
+MY.XRDCP_CREATE_DIR = true
+
 """
 
 HTCONDOR_SUBMIT_FILE_COMMON_END = """
-queue Executable,Simpath,Outpath,Errpath from __REPLACE_WITH_QUEUE_FILE__
+queue Executable,Simpath,Outpath,Errpath,Outfilepath from __REPLACE_WITH_QUEUE_FILE__
 """
 
 HTCONDOR_SUBMIT_FILE_DEFAULT_CPU = (
@@ -465,7 +469,7 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
             f.write(main_file_content)
 
         # fill the queue file line
-        queue_file_content += f"{main_file}, {folder_path}, {os.path.join(stdout_path, sim + '.out')}, {os.path.join(stderr_path, sim + '.err')}\n"
+        queue_file_content += f"{main_file}, {folder_path}, {os.path.join(stdout_path, sim + '.out')}, {os.path.join(stderr_path, sim + '.err')}, {os.path.join(eos_dir, sim)}/ \n"
 
         print(f"Added {sim} to the queue file")
 
