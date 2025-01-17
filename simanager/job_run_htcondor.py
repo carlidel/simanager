@@ -124,7 +124,6 @@ error      = $(Errpath)
 log        = __REPLACE_WITH_LOG_PATH__
 
 transfer_input_files = $(Simpath), __REPLACE_WITH_EOSSTAGEIN__ __REPLACE_WITH_REQUIREMENTS__
-transfer_output_files = ""
 
 # requirements = regexp("(CentOS7|AlmaLinux9)", OpSysAndVer)
 
@@ -135,8 +134,8 @@ MY.JobFlavour = "__REPLACE_WITH_TIME_LIMIT__"
 MY.AccountingGroup = "group_u_BE.ABP.normal"
 # MY.WantOS = "el9"
 
-transfer_output_files = "output_files/"
-output_destination = "root://eosuser.cern.ch/$(Outfilepath)"
+transfer_output_files = output_files/
+output_destination = root://eosuser.cern.ch/$(Outfilepath)
 MY.XRDCP_CREATE_DIR = true
 
 """
