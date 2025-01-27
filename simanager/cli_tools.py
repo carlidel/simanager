@@ -168,6 +168,13 @@ def generate_parser():
         help="CURSED AND CRISPY: Update simanager to the latest version. Assumes that the package is installed with 'pip install -e' and that the directory is a clone of the git repo.",
     )
 
+    # Subcommand: remove-log-files
+    remove_log_files = subparsers.add_parser(
+        "remove-log-files",
+        help="Remove all log, err, out files from the simulation folder. To be considered only when these files constitute a large portion of the disk space and are not needed anymore. It will keep one log, err, out file just for reference.",
+    )
+    remove_log_files.add_argument("--simpath", help="Simulation path", default="./")
+
     return parser
 
 
@@ -429,6 +436,31 @@ def main():
             cwd=this_directory,
             check=True,
         )
+    elif args.subcommand == "remove-log-files":
+        # load the simulation
+        sim = SimulationStudy.load_folder(args.simpath)
+        # remove log files
+        sim_folder = os.path.join(sim.study_path, sim.study_name)
+        log_folder = os.path.join(sim_folder, "log")
+        out_folder = os.path.join(sim_folder, "out")
+        err_folder = os.path.join(sim_folder, "err")
+        log_files = os.listdir(log_folder)
+        out_files = os.listdir(out_folder)
+        err_files = os.listdir(err_folder)
+        # remove all but one log file
+        for log_file in log_files[:-1]:
+            os.remove(os.path.join(log_folder, log_file))
+            print(f"Removed {log_file}")
+        # remove all but one out file
+        for out_file in out_files[:-1]:
+            os.remove(os.path.join(out_folder, out_file))
+            print(f"Removed {out_file}")
+        # remove all but one err file
+        for err_file in err_files[:-1]:
+            os.remove(os.path.join(err_folder, err_file))
+            print(f"Removed {err_file}")
+        print(f"Kept {log_files[-1]}, {out_files[-1]}, {err_files[-1]}")
+        print("Done.")
 
 
 if __name__ == "__main__":
