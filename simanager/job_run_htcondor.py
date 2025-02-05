@@ -151,7 +151,7 @@ HTCONDOR_SUBMIT_FILE_DEFAULT_CPU = (
 HTCONDOR_SUBMIT_FILE_DEFAULT_GPU = (
     HTCONDOR_SUBMIT_FILE_COMMON_BEG
     + """
-requirements = regexp("(V100|A100)", Target.GPUs_DeviceName)
+requirements = regexp("(V100|A100|H100)", Target.GPUs_DeviceName)
 
 request_GPUs = __REPLACE_WITH_REQUEST_GPUS__
 """
