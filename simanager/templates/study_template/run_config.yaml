@@ -7,6 +7,7 @@ run_htcondor:
   cvmfs_path: /cvmfs/sft.cern.ch/lcg/views/LCG_104a_cuda/x86_64-el9-gcc11-opt/setup.sh
   venv_path: /path/to/my/venv
   eos_dir: /eos/user/c/camontan/data
+  output_transfer_method: eos_plugin
 run_slurm:
   venv_path: /path/to/my/venv
   time_limit: 02:00:00

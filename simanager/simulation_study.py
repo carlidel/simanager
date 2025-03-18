@@ -473,6 +473,9 @@ class SimulationStudy:
             elif os.path.exists(os.path.join(folder_path, "ERROR_" + sim)):
                 self.set_sim_status(sim, "error")
                 print(f"REMOTE CHECK: Simulation {sim} failed remotely.")
+            elif os.path.exists(os.path.join(folder_path, "IO_ERROR_" + sim)):
+                self.set_sim_status(sim, "error")
+                print(f"REMOTE CHECK: Simulation {sim} failed remotely due to a OUTPUT TRANSFER error!!!!")
             else:
                 # self.set_sim_status(sim, "not_started")
                 print(f"REMOTE CHECK: Simulation {sim} has either not started or is still running.")

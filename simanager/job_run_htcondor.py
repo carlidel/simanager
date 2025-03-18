@@ -70,6 +70,82 @@ source venv/bin/activate
 pip install -r requirements.txt
 """
 
+TRANSFER_OUT_INSTRUCTIONS_AFS = """
+# transfer the output files to AFS
+echo "Transferring output files to AFS"
+# create the folder in AFS
+echo "Creating the folder in AFS at $OUTPUTPATH/$SIMNAME"
+mkdir -p $OUTPUTPATH/$SIMNAME
+echo "Performing direct copy to AFS"
+cp -r ./output_files/* $OUTPUTPATH/$SIMNAME
+# check if the copy was successful
+if [ $? -eq 0 ]; then
+    echo "Copy to AFS successful"
+    AFS_COPY_SUCCESS="true"
+else
+    echo "Copy to AFS failed"
+    AFS_COPY_SUCCESS="false"
+fi
+"""
+
+TRANSFER_OUT_INSTRUCTIONS_EOS = """
+# final instructions
+EOS_DIR=__REPLACE_WITH_EOS_DIR__
+# transfer the output files to EOS
+echo "Transferring output files to EOS"
+# create the folder in EOS
+echo "Creating the folder in EOS at $EOS_DIR/$SIMNAME"
+eos mkdir -p $EOS_DIR/$SIMNAME
+echo "Performing direct copy to EOS"
+eos cp -r -p ./output_files/* $EOS_DIR/$SIMNAME
+# check if the copy was successful
+if [ $? -eq 0 ]; then
+    echo "Copy to EOS successful"
+    EOS_COPY_SUCCESS="true"
+else
+    echo "Copy to EOS failed"
+    EOS_COPY_SUCCESS="false"
+fi
+"""
+
+ADD_SYMBOLIC_LINK_FROM_AFS_TO_EOS = """
+# create a symbolic link of the output_files folder in the OUTPUTPATH
+EOS_DIR=__REPLACE_WITH_EOS_DIR__
+ln -s $EOS_DIR/$SIMNAME $OUTPUTPATH/$SIMNAME
+"""
+
+SKIP_CHECK = """
+    # skip the check
+    touch $SIMPATH/../../remote_touch_files/FINISHED_$(basename $SIMPATH) 
+"""
+
+CHECK_COMMAND_EOS = """
+    # check if the copy to EOS was successful
+    if [ $EOS_COPY_SUCCESS == "true" ]; then
+        touch $SIMPATH/../../remote_touch_files/FINISHED_$(basename $SIMPATH)
+    else
+        touch $SIMPATH/../../remote_touch_files/IO_ERROR_$(basename $SIMPATH)
+    fi
+"""
+
+CHECK_COMMAND_AFS = """
+    # check if the copy to AFS was successful
+    if [ $AFS_COPY_SUCCESS == "true" ]; then
+        touch $SIMPATH/../../remote_touch_files/FINISHED_$(basename $SIMPATH)
+    else
+        touch $SIMPATH/../../remote_touch_files/IO_ERROR_$(basename $SIMPATH)
+    fi
+"""
+
+CHECK_COMMAND_AFS_AND_EOS = """
+    # check if either the copy to AFS or EOS was successful
+    if [ $AFS_COPY_SUCCESS == "true" ] || [ $EOS_COPY_SUCCESS == "true" ]; then
+        touch $SIMPATH/../../remote_touch_files/FINISHED_$(basename $SIMPATH)
+    else
+        touch $SIMPATH/../../remote_touch_files/IO_ERROR_$(basename $SIMPATH)
+    fi
+"""
+
 FINAL_INSTRUCTIONS_HTCONDOR_DEFAULT = """
 #___BEGIN_FINAL_INSTRUCTIONS___
 
@@ -83,9 +159,6 @@ fi
 if [ -d "./input_eos" ]; then
     rm -rf ./input_eos
 fi
-    
-# final instructions
-EOS_DIR=__REPLACE_WITH_EOS_DIR__
 
 # we assume that all output files are generated in a folder named "output_files"
 # so we want to copy and rename the entire folder to the EOS directory
@@ -95,22 +168,21 @@ EOS_DIR=__REPLACE_WITH_EOS_DIR__
 echo "Contents of the output_files folder:"
 ls -l ./output_files
 
-# # create the EOS directory
-# eos mkdir -p $EOS_DIR/$SIMNAME
-# 
-# echo "Copying output_files content to EOS"
-# eos cp -r -p ./output_files/* $EOS_DIR/$SIMNAME
-
-# create a symbolic link of the output_files folder in the OUTPUTPATH
-ln -s $EOS_DIR/$SIMNAME $OUTPUTPATH/$SIMNAME
+__REPLACE_WITH_OUTPUT_TRANSFER_INSTRUCTIONS__
 
 # create a marker file to signal that the simulation is finished in SIMPATH
 if [ $command_success == "true" ]; then
-    touch $SIMPATH/../../remote_touch_files/FINISHED_$(basename $SIMPATH)
+__REPLACE_WITH_CHECK_COMMAND__
 else
     touch $SIMPATH/../../remote_touch_files/ERROR_$(basename $SIMPATH)
 fi
 
+"""
+
+HTCONDOR_TRANSFER_OUTPUT_PLUGIN = """
+transfer_output_files = output_files/
+output_destination = root://eosuser.cern.ch/$(Outfilepath)
+MY.XRDCP_CREATE_DIR = true
 """
 
 HTCONDOR_SUBMIT_FILE_COMMON_BEG = """
@@ -134,9 +206,7 @@ MY.JobFlavour = "__REPLACE_WITH_TIME_LIMIT__"
 MY.AccountingGroup = "group_u_BE.ABP.normal"
 # MY.WantOS = "el9"
 
-transfer_output_files = output_files/
-output_destination = root://eosuser.cern.ch/$(Outfilepath)
-MY.XRDCP_CREATE_DIR = true
+__REPLACE_WITH_OUTPUT_TRANSFER_INSTRUCTIONS__
 
 """
 
@@ -290,6 +360,13 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         If True, runs only the test case, by default False.
     test_time_limit : str
         The time limit for the test case. By default, "espresso".
+    output_transfer_method: str
+        The method to transfer the output files. By default, "eos_plugin".
+        Available methods are "afs", "eos_direct", "eos_plugin" and "all".
+        "afs" transfers the output files to AFS.
+        "eos_direct" transfers the output files to EOS directly with eos cp.
+        "eos_plugin" transfers the output files to EOS with the HTCondor EOS plugin.
+        "all" transfers the output files to both AFS and EOS.
 
     Raises
     ------
@@ -313,6 +390,7 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     bump_schedd = kwargs.pop("bump_schedd", False)
     run_test = kwargs.pop("run_test", False)
     test_time_limit = kwargs.pop("test_time_limit", "espresso")
+    output_transfer_method = kwargs.pop("output_transfer_method", "eos_plugin")
 
     htcondor_submit_str = kwargs.pop(
         "htcondor_submit_template",
@@ -392,6 +470,17 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         "__REPLACE_WITH_LOG_PATH__", os.path.join(log_path, log_name)
     )
 
+    # insert transfer output instructions
+    if output_transfer_method != "eos_plugin":
+        htcondor_submit_str = htcondor_submit_str.replace(
+            "__REPLACE_WITH_OUTPUT_TRANSFER_INSTRUCTIONS__", ""
+        )
+    else:
+        htcondor_submit_str = htcondor_submit_str.replace(
+            "__REPLACE_WITH_OUTPUT_TRANSFER_INSTRUCTIONS__",
+            HTCONDOR_TRANSFER_OUTPUT_PLUGIN,
+        )
+
     # load the simulation info
     simulation_info_file = os.path.join(sim_folder, "simulation_info.yaml")
     with open(simulation_info_file, "r", encoding="utf-8") as f:
@@ -445,6 +534,46 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
     initial_instructions = initial_instructions.replace(
         "___REPLACE_WITH_YAML_NAME___", simulation_study.config_file
     )
+
+    # set output transfer instructions
+    if output_transfer_method == "afs":
+        final_instructions = final_instructions.replace(
+            "__REPLACE_WITH_OUTPUT_TRANSFER_INSTRUCTIONS__",
+            TRANSFER_OUT_INSTRUCTIONS_AFS,
+        )
+
+        final_instructions = final_instructions.replace(
+            "__REPLACE_WITH_CHECK_COMMAND__", CHECK_COMMAND_AFS
+        )
+    elif output_transfer_method == "eos_direct":
+        final_instructions = final_instructions.replace(
+            "__REPLACE_WITH_OUTPUT_TRANSFER_INSTRUCTIONS__",
+            TRANSFER_OUT_INSTRUCTIONS_EOS + "\n" + ADD_SYMBOLIC_LINK_FROM_AFS_TO_EOS,
+        )
+
+        final_instructions = final_instructions.replace(
+            "__REPLACE_WITH_CHECK_COMMAND__", CHECK_COMMAND_EOS
+        )
+    elif output_transfer_method == "eos_plugin":
+        final_instructions = final_instructions.replace(
+            "__REPLACE_WITH_OUTPUT_TRANSFER_INSTRUCTIONS__",
+            ADD_SYMBOLIC_LINK_FROM_AFS_TO_EOS,
+        )
+
+        final_instructions = final_instructions.replace(
+            "__REPLACE_WITH_CHECK_COMMAND__", SKIP_CHECK
+        )
+    elif output_transfer_method == "all":
+        final_instructions = final_instructions.replace(
+            "__REPLACE_WITH_OUTPUT_TRANSFER_INSTRUCTIONS__",
+            TRANSFER_OUT_INSTRUCTIONS_AFS + "\n" + TRANSFER_OUT_INSTRUCTIONS_EOS,
+        )
+
+        final_instructions = final_instructions.replace(
+            "__REPLACE_WITH_CHECK_COMMAND__", CHECK_COMMAND_AFS_AND_EOS
+        )
+    else:
+        raise ValueError("Unknown output transfer method")
 
     final_instructions = final_instructions.replace("__REPLACE_WITH_EOS_DIR__", eos_dir)
 
@@ -529,6 +658,11 @@ def job_run_htcondor(simulation_study: SimulationStudy, **kwargs):
         print("Keyboard interrupt detected, exiting...")
         print("----------------------------------------")
         print("You have been saved by the keyboard!")
+        print("The jobs were not submitted!")
+        print("----------------------------------------")
+        return
+    except FileNotFoundError:
+        print("HTCondor not found! Are you sure you are on Lxplus?")
         print("The jobs were not submitted!")
         print("----------------------------------------")
         return
