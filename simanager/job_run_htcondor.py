@@ -203,7 +203,7 @@ request_cpus = __REPLACE_WITH_REQUEST_CPUS__
 
 MY.JobFlavour = "__REPLACE_WITH_TIME_LIMIT__"
 
-MY.AccountingGroup = "group_u_BE.ABP.normal"
+# MY.AccountingGroup = "group_u_BE.ABP.normal"
 # MY.WantOS = "el9"
 
 __REPLACE_WITH_OUTPUT_TRANSFER_INSTRUCTIONS__
